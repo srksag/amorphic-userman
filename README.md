@@ -163,7 +163,7 @@ the amorphic-mandril module these emails can be sent via mandrill.
 
 ## License
 
-superType is licensed under the MIT license
+amorhic-userman is licensed under the MIT license
 
 
 
