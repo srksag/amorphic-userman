@@ -21,14 +21,198 @@ module.exports.userman_mixins = function (objectTemplate, requires, moduleConfig
         }
     });
 
-    var Principal = requires[moduleConfig.principal.require][moduleConfig.principal.template];
     var Controller = requires[moduleConfig.controller.require][moduleConfig.controller.template]
+    var principals = moduleConfig.principal instanceof Array ? moduleConfig.principal : [moduleConfig.principal];
 
+    for (var ix = 0; ix < principals.length; ++ix)
+    {
+        var Principal = requires[principals[ix].require][principals[ix].template];
+
+        Principal.mixin(
+            {
+                // These secure elements are NEVER transmitted
+
+                passwordHash: {toClient: false, toServer: false, type: String},
+                passwordSalt: {toClient: false, toServer: false, type: String },
+
+                passwordChangeHash: {toClient: false, toServer: false, type: String, value: ""},
+                passwordChangeSalt: {toClient: false, toServer: false, type: String, value: ""},
+                passwordChangeExpires: {toClient: false, toServer: false, type: Date},
+
+                validateEmailCode: {toClient: false, toServer: false, type: String}, // If present status is pending
+
+                role: {toServer: false, type: String, init: "user", values: {
+                    "user": "User",             // A normal user
+                    "admin": "Administrator"}   // An administrative user
+                },
+                roleSet: {on: "server", body: function (role) {
+                    if (this.getSecurityContext.role == 'admin' && (role == 'admin' || role == 'user'))
+                        this.role = role;
+                    else
+                        throw {code: "role_change", text: "You cannot change roles"};
+                }},
+                isAdmin: function () {
+                    return this.role == 'admin';
+                },
+                /**
+                 * Create a password hash and save the object
+                 *
+                 * @param password
+                 * @returns {*} promise (true) when done
+                 * throws an exception if the password does not meet password rules
+                 */
+                establishPassword: function (password, noValidate) {
+                    if (!noValidate)
+                        this.validateNewPassword(password);
+
+                    // Get a random number as the salt
+                    return this.getSalt().then(function (salt) {
+                        this.passwordSalt = salt;
+                        this.passwordChangeHash = "";
+
+                        // Create a hash of the password with the salt
+                        return this.getHash(password, salt);
+
+                    }.bind(this)).then(function (hash) {
+                        // Save this for verification later
+                        this.passwordHash = hash;
+                        return this.persistSave().then(function (id) {
+                            return Q(true);
+                        }.bind(this));
+
+                    }.bind(this));
+                },
+
+                /**
+                 * Check password rules for a new password
+                 *
+                 * @param password
+                 * @return {*}
+                 */
+                validateNewPassword: function (password) {
+                    if (password.length < 6 || password.length > 30 || !password.match(/[A-Za-z]/) || !password.match(/[0-9]/))
+
+                        throw {code: "password_composition",
+                            text: "Password must be 6-30 characters with at least one letter and one number"};
+                },
+
+                /**
+                 * Return a password hash
+                 *
+                 * @param password
+                 * @param salt
+                 * @return {*}
+                 */
+                getHash: function (password, salt) {
+                    return Q.ninvoke(crypto, 'pbkdf2', password, salt, 10000, 64).then(function (whyAString) {
+                        return Q((new Buffer(whyAString, 'binary')).toString('hex'));
+                    });
+                },
+
+                /**
+                 * Get a secure random string for the salt
+                 *
+                 * @return {*}
+                 */
+                getSalt: function () {
+                    return Q.ninvoke(crypto, 'randomBytes', 64).then(function (buf) {
+                        return Q(buf.toString('hex'));
+                    });
+                },
+
+                /*
+                 * Make registration pending verification of a code usually sent by email
+                 */
+                setEmailVerificationCode: function () {
+                    return this.getSalt().then(function (salt) {
+                        this.validateEmailCode = salt.substr(10, 6);
+                        return this.persistSave();
+
+                    }.bind(this));
+                },
+
+                /*
+                 * Verify the email code passed in and reset the principal record to allow registration to proceed
+                 */
+                consumeEmailVerificationCode: function (code) {
+                    if (code != this.validateEmailCode)
+                        throw {code: "inavlid_validation_link", text: "Incorrect email validation link"}
+
+                    this.validateEmailCode = false;
+                    return this.persistSave();
+                },
+
+                /**
+                 * Create a one-way hash for changing passwords
+                 * @returns {*}
+                 */
+                setPasswordChangeHash: function () {
+                    var token;
+                    return this.getSalt().then(function (salt) {
+                        token = salt;
+                        return this.getSalt();
+                    }.bind(this)).then(function (salt) {
+                        this.passwordChangeSalt = salt;
+                        return this.getHash(token, salt);
+                    }.bind(this)).then(function (hash) {
+                        this.passwordChangeHash = hash;
+                        this.passwordChangeExpires = new Date(((new Date()).getTime() +
+                            (moduleConfig.passwordChangeExpiresHours || 24) * 60 * 60 * 1000));
+                        return this.persistSave();
+                    }.bind(this)).then(function () {
+                        return Q(token);
+                    }.bind(this));
+                },
+
+                /**
+                 * Consume a password change token and change the password
+                 *
+                 * @param token
+                 * @returns {*}
+                 */
+                consumePasswordChangeToken: function (token, newPassword) {
+                    if (!this.passwordChangeHash)
+                        throw {code: "password_reset_used", text: "Password change link already used"};
+                    return this.getHash(token, this.passwordChangeSalt).then(function (hash) {
+                        if (this.passwordChangeHash != hash)
+                            throw {code: "invalid_password_change_link", text: "Incorrect password change link"};
+                        if (this.passwordChangeExpires.getTime() < (new Date()).getTime())
+                            throw {code: "password_change_link_expired", text: "Password change link expired"};
+                        return this.establishPassword(newPassword);
+                    }.bind(this));
+                },
+
+                /**
+                 * Verify a password on login (don't reveal password vs. user name is bad)
+                 *
+                 * @param password
+                 * @returns {*}
+                 */
+                authenticate: function (password, loggedIn) {
+                    if (this.validateEmailCode)
+
+                        throw {code: "registration_unverified",
+                            text: "Please click on the link in your verification email to activate this account"};
+
+                    return this.getHash(password, this.passwordSalt).then(function (hash) {
+                        if (this.passwordHash !== hash)
+                            throw loggedIn ?
+                            {code: "invalid_password", text: "Incorrect password"} :
+                            {code: "invalid_email_or_password", text: "Incorrect email or password"};
+
+                        return Q(true);
+
+                    }.bind(this))
+                }
+            });
+    }
+
+    var Principal = requires[principals[0].require][principals[0].template];
     var SecurityContext = objectTemplate.create(
         {
-            principal:      {toServer: false, type: Principal},
-            role:           {toServer: false, type: String},
-            init:       function (principal, role) {
+            principal: {toServer: false, type: Principal},
+            role: {toServer: false, type: String},
+            init: function (principal, role) {
                 this.principal = principal;
                 this.role = role;
             },
@@ -40,197 +224,6 @@ module.exports.userman_mixins = function (objectTemplate, requires, moduleConfig
             }
         });
 
-    Principal.mixin(
-        {
-            // These secure elements are NEVER transmitted
-
-            passwordHash:           {toClient: false, toServer: false, type: String},
-            passwordSalt:           {toClient: false, toServer: false, type: String },
-
-            passwordChangeHash:     {toClient: false, toServer: false, type: String, value: ""},
-            passwordChangeSalt:     {toClient: false, toServer: false, type: String, value: ""},
-            passwordChangeExpires:  {toClient: false, toServer: false, type: Date},
-
-            validateEmailCode:      {toClient: false, toServer: false, type: String}, // If present status is pending
-
-            role:                   {toServer: false, type: String, init: "user", values: {
-                "user": "User",             // A normal user
-                "admin": "Administrator"}   // An administrative user
-            },
-            roleSet:  {on: "server", body: function (role) {
-                if (this.getSecurityContext.role == 'admin' && (role == 'admin' || role == 'user'))
-                    this.role = role;
-                else
-                    throw {code: "role_change", text: "You cannot change roles"};
-            }},
-            isAdmin: function () {
-                return this.role == 'admin';
-            },
-            /**
-             * Create a password hash and save the object
-             *
-             * @param password
-             * @returns {*} promise (true) when done
-             * throws an exception if the password does not meet password rules
-             */
-            establishPassword: function (password, noValidate)
-            {
-                if (!noValidate)
-                    this.validateNewPassword(password);
-
-                // Get a random number as the salt
-                return this.getSalt().then(function (salt)
-                {
-                    this.passwordSalt = salt;
-                    this.passwordChangeHash = "";
-
-                    // Create a hash of the password with the salt
-                    return this.getHash(password, salt);
-
-                }.bind(this)).then(function (hash)
-                {
-                    // Save this for verification later
-                    this.passwordHash = hash;
-                    return this.persistSave().then(function (id) {
-                        return Q(true);
-                    }.bind(this));
-
-                }.bind(this));
-            },
-
-            /**
-             * Check password rules for a new password
-             *
-             * @param password
-             * @return {*}
-             */
-            validateNewPassword: function (password) {
-                if (password.length < 6 || password.length > 30 || !password.match(/[A-Za-z]/) || !password.match(/[0-9]/))
-
-                    throw {code: "password_composition",
-                        text: "Password must be 6-30 characters with at least one letter and one number"};
-            },
-
-            /**
-             * Return a password hash
-             *
-             * @param password
-             * @param salt
-             * @return {*}
-             */
-            getHash: function (password, salt)
-            {
-                return Q.ninvoke(crypto, 'pbkdf2', password, salt, 10000, 64).then(function (whyAString)
-                {
-                    return Q((new Buffer(whyAString, 'binary')).toString('hex'));
-                });
-            },
-
-            /**
-             * Get a secure random string for the salt
-             *
-             * @return {*}
-             */
-            getSalt: function ()
-            {
-                return Q.ninvoke(crypto, 'randomBytes', 64).then(function (buf)
-                {
-                    return Q(buf.toString('hex'));
-                });
-            },
-
-            /*
-             * Make registration pending verification of a code usually sent by email
-             */
-            setEmailVerificationCode: function ()
-            {
-                return this.getSalt().then(function (salt)
-                {
-                    this.validateEmailCode = salt.substr(10, 6);
-                    return this.persistSave();
-
-                }.bind(this));
-            },
-
-            /*
-             * Verify the email code passed in and reset the principal record to allow registration to proceed
-             */
-            consumeEmailVerificationCode: function (code)
-            {
-                if (code != this.validateEmailCode)
-                    throw {code: "inavlid_validation_link", text: "Incorrect email validation link"}
-
-                this.validateEmailCode = false;
-                return this.persistSave();
-            },
-
-            /**
-             * Create a one-way hash for changing passwords
-             * @returns {*}
-             */
-            setPasswordChangeHash: function ()
-            {
-                var token;
-                return this.getSalt().then(function (salt) {
-                    token = salt;
-                    return this.getSalt();
-                }.bind(this)).then(function (salt) {
-                    this.passwordChangeSalt = salt;
-                    return this.getHash(token, salt);
-                }.bind(this)).then(function (hash) {
-                    this.passwordChangeHash = hash;
-                    this.passwordChangeExpires = new Date(((new Date()).getTime() +
-                        (moduleConfig.passwordChangeExpiresHours || 24) * 60*60*1000));
-                    return this.persistSave();
-                }.bind(this)).then (function() {
-                    return Q(token);
-                }.bind(this));
-            },
-
-            /**
-             * Consume a password change token and change the password
-             *
-             * @param token
-             * @returns {*}
-             */
-            consumePasswordChangeToken: function (token, newPassword)
-            {
-                if (!this.passwordChangeHash)
-                    throw {code: "password_reset_used", text:"Password change link already used"};
-                return this.getHash(token, this.passwordChangeSalt).then(function (hash) {
-                    if (this.passwordChangeHash != hash)
-                        throw {code: "invalid_password_change_link", text:"Incorrect password change link"};
-                    if (this.passwordChangeExpires.getTime() < (new Date()).getTime())
-                        throw {code: "password_change_link_expired", text: "Password change link expired"};
-                    return this.establishPassword(newPassword);
-                }.bind(this));
-            },
-
-            /**
-             * Verify a password on login (don't reveal password vs. user name is bad)
-             *
-             * @param password
-             * @returns {*}
-             */
-            authenticate:  function (password, loggedIn)
-            {
-                if (this.validateEmailCode)
-
-                    throw {code: "registration_unverified",
-                        text: "Please click on the link in your verification email to activate this account"};
-
-                return this.getHash(password, this.passwordSalt).then( function(hash)
-                {
-                    if (this.passwordHash !== hash)
-                        throw loggedIn ?
-                        {code: "invalid_password", text: "Incorrect password"} :
-                        {code: "invalid_email_or_password", text: "Incorrect email or password"};
-
-                    return Q(true);
-
-                }.bind(this))
-            }
-        });
 
     Controller.mixin(
         {
