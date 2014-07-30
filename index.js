@@ -290,7 +290,10 @@ module.exports.userman_mixins = function (objectTemplate, requires, moduleConfig
                         if (count > 0)
                             throw {code: "email_registered", text:"This email already registered"};
 
-                        principal = new Principal(this.email, this.firstName, "", this.lastName);
+                        principal = new Principal();
+                        principal.email = this.email;
+                        principal.firstName = this.firstName;
+                        principal.lastName = this.lastName;
                         return principal.establishPassword(this.newPassword);
 
                     }.bind(this)).then( function() {

@@ -1,3 +1,5 @@
+## 0.1.06
+* No longer require that Principal has an init method
 ## 0.1.05
 * Can use xxxField ids in form container to limit scope of validation
 ## 0.1.04
