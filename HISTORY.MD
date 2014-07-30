@@ -1,3 +1,5 @@
+## 0.1.05
+* Can use xxxField ids in form container to limit scope of validation
 ## 0.1.04
 * Allowed principal declaration to be an array
 ## 0.1.03

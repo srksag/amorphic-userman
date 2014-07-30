@@ -275,7 +275,7 @@ module.exports.userman_mixins = function (objectTemplate, requires, moduleConfig
             publicRegister: {
                 on: "server",
                 validate: function () {
-                    return this.validate()
+                    return this.validate(document.getElementById('publicRegisterFields'));
                 },
                 body: function (url, pageConfirmation, pageInstructions)
                 {
@@ -324,7 +324,7 @@ module.exports.userman_mixins = function (objectTemplate, requires, moduleConfig
              */
             publicLogin: {
                 on: "server",
-                validate: function () {return this.validate()},
+                validate: function () {return this.validate(document.getElementById('publicLoginFields'))},
                 body: function(page)
                 {
                     if (this.loggedIn)
@@ -387,7 +387,7 @@ module.exports.userman_mixins = function (objectTemplate, requires, moduleConfig
              */
             changeEmail: {
                 on: "server",
-                validate: function () {return this.validate()},
+                validate: function () {return this.validate(document.getElementById('changeEmailFields'))},
                 body: function(page)
                 {
                     var oldEmail = this.principal.email;
@@ -428,7 +428,7 @@ module.exports.userman_mixins = function (objectTemplate, requires, moduleConfig
              */
             changePassword: {
                 on: "server",
-                validate: function () {return this.validate()},
+                validate: function () {return this.validate(document.getElementById('changePasswordFields'))},
                 body: function(page)
                 {
                     return this.principal.authenticate(this.password, true).then(function()
@@ -455,7 +455,7 @@ module.exports.userman_mixins = function (objectTemplate, requires, moduleConfig
              */
             publicResetPassword: {
                 on: "server",
-                validate: function () {return this.validate()},
+                validate: function () {return this.validate(document.getElementById('publicResetPasswordFields'))},
                 body: function(url, page)
                 {
                     url = urlparser.parse(url, true);
@@ -490,7 +490,7 @@ module.exports.userman_mixins = function (objectTemplate, requires, moduleConfig
              */
             publicChangePasswordFromToken: {
                 on: "server",
-                validate: function () {return this.validate()},
+                validate: function () {return this.validate(document.getElementById('publicChangePasswordFromTokenFields'))},
                 body: function(page)
                 {
                     var principal;
