@@ -58,6 +58,11 @@ userman will add these properties to the principal template and manage them for 
         isAdmin: function () {
             return this.role == 'admin';
         },
+You are expected to have these fields in the principal template:
+
+        firstName:              {type: String},
+        lastName:               {type: String},
+        email:                  {type: String},
 
 You don't need to worry about the password fields as they are setup when you register or change passwords.  You
 can test the role or call isAdmin to determin if the user is an admin user.

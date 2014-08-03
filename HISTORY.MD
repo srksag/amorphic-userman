@@ -1,3 +1,5 @@
+## 0.1.07
+* Compatibility with requirement that all object.create must have a classname
 ## 0.1.06
 * No longer require that Principal has an init method
 ## 0.1.05
