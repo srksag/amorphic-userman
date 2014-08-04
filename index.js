@@ -297,7 +297,8 @@ module.exports.userman_mixins = function (objectTemplate, requires, moduleConfig
                         if (count > 0)
                             throw {code: "email_registered", text:"This email already registered"};
 
-                        principal = new Principal();
+                        this[principalProperty] = this[principalProperty] || new Principal();
+                        principal = this[principalProperty];
                         principal.email = this.email;
                         principal.firstName = this.firstName;
                         principal.lastName = this.lastName;

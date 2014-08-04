@@ -1,4 +1,4 @@
-## 0.1.08
+## 0.1.09
 * Let you configure principal property in controller
 ## 0.1.07
 * Compatibility with requirement that all object.create must have a classname
