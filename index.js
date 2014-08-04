@@ -23,6 +23,8 @@ module.exports.userman_mixins = function (objectTemplate, requires, moduleConfig
 
     var Controller = requires[moduleConfig.controller.require][moduleConfig.controller.template]
     var principals = moduleConfig.principal instanceof Array ? moduleConfig.principal : [moduleConfig.principal];
+    var controllerFields = moduleConfig.controller.fields || {};
+    var principalProperty = controllerFields.principal || 'principal';
 
     for (var ix = 0; ix < principals.length; ++ix)
     {
@@ -213,25 +215,30 @@ module.exports.userman_mixins = function (objectTemplate, requires, moduleConfig
             principal: {toServer: false, type: Principal},
             role: {toServer: false, type: String},
             init: function (principal, role) {
-                this.principal = principal;
+                this[principalProperty] = principal;
                 this.role = role;
             },
             isLoggedIn: function () {
-                return !!this.principal;
+                return !!this[principalProperty];
             },
             isAdmin: function () {
-                return this.isLoggedIn() && this.principal.role == 'admin';
+                return this.isLoggedIn() && this[principalProperty].role == 'admin';
             }
         });
 
-
+    // Inject principal
+    if (!Controller.getProperties()[principalProperty])
+    {
+        var principalDef = {};
+        principalDef[principalProperty] = {toServer: false, type: Principal};
+        Controller.mixin(principalDef);
+    }
     Controller.mixin(
         {
             firstName:              {type: String, value: "", length: 50, rule: ["name", "required"]},
             lastName:               {type: String, value: "", length: 50, rule: ["name", "required"]},
             email:                  {type: String, value: "", length: 50, rule: ["text", "email", "required"]},
             newEmail:               {type: String, value: "", length: 50, rule: ["text", "email", "required"]},
-            principal:              {toServer: false, type: Principal},
 
             // Secure variables never leaked to the client
 
@@ -358,7 +365,7 @@ module.exports.userman_mixins = function (objectTemplate, requires, moduleConfig
             {
                 this.loggedIn = true;
                 this.loggedInRole = principal.role;
-                this.principal = principal;
+                this[principalProperty] = principal;
 
                 // One way so you can't spoof from client
                 this.securityContext = new SecurityContext(principal);
@@ -369,7 +376,7 @@ module.exports.userman_mixins = function (objectTemplate, requires, moduleConfig
              */
             setLoggedOutState: function ()
             {
-                this.principal = null;
+                this[principalProperty] = null;
                 this.loggedIn = false;
                 this.loggedInRole = null;
                 this.securityContext = null;
@@ -393,7 +400,7 @@ module.exports.userman_mixins = function (objectTemplate, requires, moduleConfig
                 validate: function () {return this.validate(document.getElementById('changeEmailFields'))},
                 body: function(page)
                 {
-                    var oldEmail = this.principal.email;
+                    var oldEmail = this[principalProperty].email;
                     var newEmail = this.newEmail;
 
                     return Principal.countFromPersistWithQuery({email: newEmail}).then(function (count)
@@ -401,22 +408,22 @@ module.exports.userman_mixins = function (objectTemplate, requires, moduleConfig
                         if (count > 0)
                             throw {code: "email_registered", text:"This email already registered"};
 
-                        this.principal.authenticate(this.password);
+                        this[principalProperty].authenticate(this.password);
 
                         this.email = newEmail;
-                        this.principal.email = newEmail;
-                        this.principal.persistSave();
+                        this[principalProperty].email = newEmail;
+                        this[principalProperty].persistSave();
 
-                        this.sendEmail("email_changed", oldEmail, this.principal.getFullName(), [
+                        this.sendEmail("email_changed", oldEmail, this[principalProperty].getFullName(), [
                             {name: "oldEmail", content: oldEmail},
                             {name: "email", content: newEmail},
-                            {name: "firstName", content: this.principal.firstName}
+                            {name: "firstName", content: this[principalProperty].firstName}
                         ]);
 
-                        this.sendEmail("email_changed", newEmail, this.principal.getFullName(), [
+                        this.sendEmail("email_changed", newEmail, this[principalProperty].getFullName(), [
                             {name: "oldEmail", content: oldEmail},
                             {name: "email", content: newEmail},
-                            {name: "firstName", content: this.principal.firstName}
+                            {name: "firstName", content: this[principalProperty].firstName}
                         ]);
 
                         log("Changed email " + oldEmail + " to " + newEmail);
@@ -434,16 +441,16 @@ module.exports.userman_mixins = function (objectTemplate, requires, moduleConfig
                 validate: function () {return this.validate(document.getElementById('changePasswordFields'))},
                 body: function(page)
                 {
-                    return this.principal.authenticate(this.password, true).then(function()
+                    return this[principalProperty].authenticate(this.password, true).then(function()
                     {
-                        return this.principal.establishPassword(this.newPassword).then(function ()
+                        return this[principalProperty].establishPassword(this.newPassword).then(function ()
                         {
-                            log("Changed password for " + this.principal.email);
+                            log("Changed password for " + this[principalProperty].email);
 
                             this.sendEmail("password_changed",
-                                this.principal.email, this.principal.firstName,
+                                this[principalProperty].email, this[principalProperty].firstName,
                                 [
-                                    {name: "firstName", content: this.principal.firstName}
+                                    {name: "firstName", content: this[principalProperty].firstName}
                                 ]);
 
                             return page ? this.setPage(page) : Q(true);

@@ -96,6 +96,12 @@ userman will add these properties to your controller and manage them for you
         loggedIn:               {toServer: false, type: Boolean, value: false},
         loggedInRole:           {toServer: false, type: String},
 
+the controller must also have a property to represent the principal.  You can configure this property in the json.config for the module using the fields property of the controller property
+ 
+        "controller": {"require": "controller", "template": "Controller", fields: "loggedInPerson"},
+   
+By default the property is named principal.  If the property is not already defined in controller it will be added
+
 These fields are for your view to bind with when interacting with userman.  You will seem them referenced in the
 default views in the pages sub-directory.  You can use the default views for login, changing passwords, registration
  or create your own.
