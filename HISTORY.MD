@@ -1,3 +1,5 @@
+## 0.1.10
+* Don't use configurable principal in securityContext
 ## 0.1.09
 * Let you configure principal property in controller
 ## 0.1.07

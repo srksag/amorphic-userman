@@ -17,7 +17,7 @@ module.exports.userman_mixins = function (objectTemplate, requires, moduleConfig
      */
     objectTemplate.globalInject(function (obj) {
         obj.getSecurityContext = function () {
-            return objectTemplate.controller.securityContext;
+            return objectTemplate.controller.securityContext || new SecurityContext();
         }
     });
 
@@ -215,14 +215,14 @@ module.exports.userman_mixins = function (objectTemplate, requires, moduleConfig
             principal: {toServer: false, type: Principal},
             role: {toServer: false, type: String},
             init: function (principal, role) {
-                this[principalProperty] = principal;
+                this.principal = principal;
                 this.role = role;
             },
             isLoggedIn: function () {
-                return !!this[principalProperty];
+                return !!this.role;
             },
             isAdmin: function () {
-                return this.isLoggedIn() && this[principalProperty].role == 'admin';
+                return this.isLoggedIn() && this.principal.role == 'admin';
             }
         });
 
