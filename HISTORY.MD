@@ -1,3 +1,5 @@
+## 0.1.11
+* Admin creation in one step
 ## 0.1.10
 * Don't use configurable principal in securityContext
 ## 0.1.09

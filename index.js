@@ -264,15 +264,77 @@ module.exports.userman_mixins = function (objectTemplate, requires, moduleConfig
                 Principal.countFromPersistWithQuery({role: "admin"}).then(function (count) {
                     if (count == 0) {
                         var admin = new Principal();
-                        admin.role = "admin",
-                            admin.email = moduleConfig.defaultEmail || "amorphic@amorphic.com";
+                        admin.role = "admin";
+                        admin.email = moduleConfig.defaultEmail || "amorphic@amorphic.com";
                         admin.firstName = "Admin";
                         admin.lastName = "User";
+                        admin.role = moduleConfig.defaultRole || "admin";
                         return admin.establishPassword(moduleConfig.defaultPassword || "admin", true);
                     } else
                         return Q(false);
                 });
             },
+
+            /**
+             * Create a new principal if one does not exist. This method is used by the currently logged in user to create
+             * new users. The principal info comes from the an object which should have the following properties:
+             *
+             * firstName, lastName, email, newPassword, confirmPassword, role
+             */
+            createNewAdmin: {
+                on: "server",
+                validate: function(){
+                    return this.validate(document.getElementById('publicRegisterFields'));
+                },
+                body: function(newAdmin, url, pageConfirmation, pageInstructions){
+
+                    // Check for security context of security admin
+                    if(this.loggedInRole !== moduleConfig.defaultRole){
+                        throw {code: 'cannotcreateadmin', text: "Only a security admin can create users"};
+                    }
+                    if (newAdmin.newPassword != newAdmin.confirmPassword)
+                        throw {code: 'passwordmismatch', text: "Password's are not the same"};
+
+                    var principal;
+
+                    url = urlparser.parse(url, true);
+                    return Principal.countFromPersistWithQuery({email: newAdmin.email}).then( function (count)
+                    {
+                        if (count > 0)
+                            throw {code: "email_registered", text:"This email is already registered"};
+
+                        // this[principalProperty] = this[principalProperty] || new Principal();
+                        principal = new Principal();
+                        principal.email = newAdmin.email;
+                        principal.firstName = newAdmin.firstName;
+                        principal.lastName = newAdmin.lastName;
+                        principal.role = newAdmin.role;
+                        return principal.establishPassword(newAdmin.newPassword);
+
+                    }.bind(this)).then( function() {
+                        if (moduleConfig.validateEmail)
+                            return principal.setEmailVerificationCode();
+                        else {
+                            return Q(false);
+                        }
+                    }.bind(this)).then (function ()
+                    {
+                        this.sendEmail(moduleConfig.validateEmail ? "register_verify": "register",
+                            principal.email, this.firstName + " " + this.lastName, [
+                                {name: "firstName", content: this.firstName},
+                                {name: "email", content: this.email},
+                                {name: "link", content: url.protocol + "//" + url.host.replace(/:.*/, '') +
+                                    (url.port > 1000 ? ':' + url.port : '') +
+                                    "?email=" + encodeURIComponent(this.email) +
+                                    "&code=" + principal.validateEmailCode + "#verify_email"}
+                            ]);
+                        if (moduleConfig.validateEmail && pageInstructions)
+                            return this.setPage(pageInstructions);
+                        if (!moduleConfig.validateEmail && pageConfirmation)
+                            return this.setPage(pageConfirmation);
+
+                    }.bind(this))
+                }},
 
             /**
              * Create a new principal if one does not exist and consider ourselves logged in

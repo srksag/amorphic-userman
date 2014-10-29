@@ -107,8 +107,18 @@ default views in the pages sub-directory.  You can use the default views for log
  or create your own.
  
  userman provides these methods in the controller for you to manage users
- 
-* __publicRegister(url, pageConfirmation, pageInstructions)__ - 
+
+* __createNewAdmin(newAdmin, url, pageConfirmation, pageInstructions)__ -
+Creates a new principal if one does not exist. This method is intended create new users by the currently
+logged in admin user.
+The url of your application is passed as a parameter and used to construct a verification email link.
+pageConfirmation and pageInstructions are two paths that will be passed in call to the setPage method
+on your controller to route to either an instruction page for receiving the verification email or
+a confirmation page to let the user know they were successfully registered.
+Expects properties -  email, firstName, lastName, newPassword, confirmPassword and role - on a object hash (newAdmin)
+
+
+* __publicRegister(url, pageConfirmation, pageInstructions)__ -
 Creates a new principal if one does not exist and logs them in.
 The url of your application is passed as a parameter and used to construct a verification email link.
 pageConfirmation and pageInstructions are two paths that will be passed in call to the setPage method
