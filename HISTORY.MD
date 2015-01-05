@@ -1,3 +1,6 @@
+## 0.1.12
+* Allow user friendly validation codes to go in emails
+* Added verify from token when principal already fetched
 ## 0.1.11
 * Admin creation in one step
 ## 0.1.10

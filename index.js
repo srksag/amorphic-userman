@@ -42,6 +42,8 @@ module.exports.userman_mixins = function (objectTemplate, requires, moduleConfig
                 passwordChangeExpires: {toClient: false, toServer: false, type: Date},
 
                 validateEmailCode: {toClient: false, toServer: false, type: String}, // If present status is pending
+                emailValidated:    {toServer: false, type: Boolean, value: false},
+
 
                 role: {toServer: false, type: String, init: "user", values: {
                     "user": "User",             // A normal user
@@ -126,11 +128,16 @@ module.exports.userman_mixins = function (objectTemplate, requires, moduleConfig
                  * Make registration pending verification of a code usually sent by email
                  */
                 setEmailVerificationCode: function () {
-                    return this.getSalt().then(function (salt) {
-                        this.validateEmailCode = salt.substr(10, 6);
+                    this.emailValidated = false;
+                    if (moduleConfig.validateEmailHumanReadable) {
+                        this.validateEmailCode = Math.floor(Math.random() * 10000);
                         return this.persistSave();
+                    } else
+                        return this.getSalt().then(function (salt) {
+                            this.validateEmailCode = salt.substr(10, 6);
+                            return this.persistSave();
 
-                    }.bind(this));
+                        }.bind(this));
                 },
 
                 /*
@@ -141,6 +148,7 @@ module.exports.userman_mixins = function (objectTemplate, requires, moduleConfig
                         throw {code: "inavlid_validation_link", text: "Incorrect email validation link"}
 
                     this.validateEmailCode = false;
+                    this.emailValidated = true;
                     return this.persistSave();
                 },
 
@@ -369,12 +377,11 @@ module.exports.userman_mixins = function (objectTemplate, requires, moduleConfig
                     }.bind(this)).then( function() {
                         if (moduleConfig.validateEmail)
                             return principal.setEmailVerificationCode();
-                        else {
+                        else
+                            return Q(true);
+                    }.bind(this)).then( function () {
+                        if (!moduleConfig.validateEmail || moduleConfig.validateEmailAndLogin)
                             this.setLoggedInState(principal);
-                            return Q(false);
-                        }
-                    }.bind(this)).then (function ()
-                    {
                         this.sendEmail(moduleConfig.validateEmail ? "register_verify": "register",
                             principal.email, this.firstName + " " + this.lastName, [
                                 {name: "firstName", content: this.firstName},
@@ -382,7 +389,9 @@ module.exports.userman_mixins = function (objectTemplate, requires, moduleConfig
                                 {name: "link", content: url.protocol + "//" + url.host.replace(/:.*/, '') +
                                     (url.port > 1000 ? ':' + url.port : '') +
                                     "?email=" + encodeURIComponent(this.email) +
-                                    "&code=" + principal.validateEmailCode + "#verify_email"}
+                                    "&code=" + principal.validateEmailCode + "#verify_email"},
+                                {name: "verificationCode", content: this[principalProperty].validateEmailCode},
+
                             ]);
                         if (moduleConfig.validateEmail && pageInstructions)
                             return this.setPage(pageInstructions);
@@ -472,7 +481,13 @@ module.exports.userman_mixins = function (objectTemplate, requires, moduleConfig
                             throw {code: "email_registered", text:"This email already registered"};
 
                         this[principalProperty].authenticate(this.password);
-
+                    }.bind(this)).then( function() {
+                        if (moduleConfig.validateEmail)
+                            return principal.setEmailVerificationCode();
+                        else {
+                            return Q(false);
+                        }
+                    }.bind(this)).then( function() {
                         this.email = newEmail;
                         this[principalProperty].email = newEmail;
                         this[principalProperty].persistSave();
@@ -483,10 +498,15 @@ module.exports.userman_mixins = function (objectTemplate, requires, moduleConfig
                             {name: "firstName", content: this[principalProperty].firstName}
                         ]);
 
-                        this.sendEmail("email_changed", newEmail, this[principalProperty].getFullName(), [
+                        this.sendEmail(moduleConfig.validateEmail ? "email_changed_verify" : "email_changed", newEmail, this[principalProperty].getFullName(), [
                             {name: "oldEmail", content: oldEmail},
                             {name: "email", content: newEmail},
-                            {name: "firstName", content: this[principalProperty].firstName}
+                            {name: "firstName", content: this[principalProperty].firstName},
+                            {name: "link", content: url.protocol + "//" + url.host.replace(/:.*/, '') +
+                                (url.port > 1000 ? ':' + url.port : '') +
+                                "?email=" + encodeURIComponent(newEmail) +
+                                "&code=" + this[principalProperty].validateEmailCode + "#verify_email"},
+                            {name: "verificationCode", content: this[principalProperty].validateEmailCode},
                         ]);
 
                         log("Changed email " + oldEmail + " to " + newEmail);
@@ -495,7 +515,23 @@ module.exports.userman_mixins = function (objectTemplate, requires, moduleConfig
 
                     }.bind(this));
                 }},
+            resendChangeEmailValidationCode: {
+                on: "server",
+                validate: function () {return this.validate(document.getElementById('changeEmailFields'))},
+                body: function(page)
+                {
+                    this.sendEmail("email_verify", this[principalProperty].email, this[principalProperty].getFullName(), [
+                        {name: "email", content: this[principalProperty].email},
+                        {name: "firstName", content: this[principalProperty].firstName},
+                        {name: "link", content: url.protocol + "//" + url.host.replace(/:.*/, '') +
+                            (url.port > 1000 ? ':' + url.port : '') +
+                            "?email=" + encodeURIComponent(this[principalProperty].email) +
+                            "&code=" + this[principalProperty].validateEmailCode + "#verify_email"},
+                        {name: "verificationCode", content: this[principalProperty].validateEmailCode},
+                    ]);
 
+                    log("Resent email validation code to " + this[principalProperty].email);
+                }},
             /**
              * Change the password for a logged in user verifying old password
              */
@@ -611,6 +647,19 @@ module.exports.userman_mixins = function (objectTemplate, requires, moduleConfig
                     return page ? this.setPage(page) : false;
 
                 }.bind(this))
+            }},
+
+            /**
+             * Verify the email code assuming principal already in controller
+             */
+            privateVerifyEmailFromCode: {on: "server", body: function(verifyEmailCode)
+            {
+                var principal = this[principalProperty];
+                try {
+                    return principal.consumeEmailVerificationCode(verifyEmailCode);
+                } catch (e) {
+                    return Q(false);
+                }
             }}
         });
 }
