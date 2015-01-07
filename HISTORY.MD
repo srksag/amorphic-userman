@@ -1,3 +1,5 @@
+## 0.1.13
+* Change email was not handling emails correctly
 ## 0.1.12
 * Allow user friendly validation codes to go in emails
 * Added verify from token when principal already fetched

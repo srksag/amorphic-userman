@@ -198,8 +198,8 @@ module.exports.userman_mixins = function (objectTemplate, requires, moduleConfig
                  * @param password
                  * @returns {*}
                  */
-                authenticate: function (password, loggedIn) {
-                    if (this.validateEmailCode)
+                authenticate: function (password, loggedIn, novalidate) {
+                    if (!novalidate && this.validateEmailCode)
 
                         throw {code: "registration_unverified",
                             text: "Please click on the link in your verification email to activate this account"};
@@ -383,7 +383,7 @@ module.exports.userman_mixins = function (objectTemplate, requires, moduleConfig
                         if (!moduleConfig.validateEmail || moduleConfig.validateEmailAndLogin)
                             this.setLoggedInState(principal);
                         this.sendEmail(moduleConfig.validateEmail ? "register_verify": "register",
-                            principal.email, this.firstName + " " + this.lastName, [
+                            principal.email, principal.firstName + " " + principal.lastName, [
                                 {name: "firstName", content: this.firstName},
                                 {name: "email", content: this.email},
                                 {name: "link", content: url.protocol + "//" + url.host.replace(/:.*/, '') +
@@ -469,18 +469,22 @@ module.exports.userman_mixins = function (objectTemplate, requires, moduleConfig
              */
             changeEmail: {
                 on: "server",
-                validate: function () {return this.validate(document.getElementById('changeEmailFields'))},
-                body: function(page)
+                validate: function () {
+                    return this.validate(document.getElementById('changeEmailFields'))},
+                body: function(page, url)
                 {
-                    var oldEmail = this[principalProperty].email;
+                    url = urlparser.parse(url, true);
+                    var principal = this[principalProperty];
+                    var oldEmail = principal.email;
                     var newEmail = this.newEmail;
 
-                    return Principal.countFromPersistWithQuery({email: newEmail}).then(function (count)
-                    {
+                    return Q(true).then(function () {
+                        return principal.authenticate(this.password, null, true);
+                    }.bind(this)).then (function () {
+                        return Principal.countFromPersistWithQuery({email: newEmail})
+                    }.bind(this)).then(function (count) {
                         if (count > 0)
                             throw {code: "email_registered", text:"This email already registered"};
-
-                        this[principalProperty].authenticate(this.password);
                     }.bind(this)).then( function() {
                         if (moduleConfig.validateEmail)
                             return principal.setEmailVerificationCode();
@@ -489,25 +493,29 @@ module.exports.userman_mixins = function (objectTemplate, requires, moduleConfig
                         }
                     }.bind(this)).then( function() {
                         this.email = newEmail;
-                        this[principalProperty].email = newEmail;
-                        this[principalProperty].persistSave();
 
-                        this.sendEmail("email_changed", oldEmail, this[principalProperty].getFullName(), [
-                            {name: "oldEmail", content: oldEmail},
-                            {name: "email", content: newEmail},
-                            {name: "firstName", content: this[principalProperty].firstName}
-                        ]);
 
-                        this.sendEmail(moduleConfig.validateEmail ? "email_changed_verify" : "email_changed", newEmail, this[principalProperty].getFullName(), [
-                            {name: "oldEmail", content: oldEmail},
-                            {name: "email", content: newEmail},
-                            {name: "firstName", content: this[principalProperty].firstName},
-                            {name: "link", content: url.protocol + "//" + url.host.replace(/:.*/, '') +
-                                (url.port > 1000 ? ':' + url.port : '') +
-                                "?email=" + encodeURIComponent(newEmail) +
-                                "&code=" + this[principalProperty].validateEmailCode + "#verify_email"},
-                            {name: "verificationCode", content: this[principalProperty].validateEmailCode},
-                        ]);
+                        principal.email = newEmail;
+                        principal.persistSave();
+
+                        this.sendEmail("email_changed", oldEmail, principal.email,
+                                principal.firstName + " " + principal.lastName, [
+                                {name: "oldEmail", content: oldEmail},
+                                {name: "email", content: newEmail},
+                                {name: "firstName", content: principal.firstName}
+                            ]);
+
+                        this.sendEmail(moduleConfig.validateEmail ? "email_changed_verify" : "email_changed",
+                            newEmail,  principal.firstName + " " + principal.lastName, [
+                                {name: "oldEmail", content: oldEmail},
+                                {name: "email", content: newEmail},
+                                {name: "firstName", content: principal.firstName},
+                                {name: "link", content: url.protocol + "//" + url.host.replace(/:.*/, '') +
+                                    (url.port > 1000 ? ':' + url.port : '') +
+                                    "?email=" + encodeURIComponent(newEmail) +
+                                    "&code=" + principal.validateEmailCode + "#verify_email"},
+                                {name: "verificationCode", content: principal.validateEmailCode},
+                            ]);
 
                         log("Changed email " + oldEmail + " to " + newEmail);
 
@@ -517,20 +525,23 @@ module.exports.userman_mixins = function (objectTemplate, requires, moduleConfig
                 }},
             resendChangeEmailValidationCode: {
                 on: "server",
-                validate: function () {return this.validate(document.getElementById('changeEmailFields'))},
-                body: function(page)
+                validate: function () {
+                    return this.validate(document.getElementById('changeEmailFields'))},
+                body: function(url)
                 {
-                    this.sendEmail("email_verify", this[principalProperty].email, this[principalProperty].getFullName(), [
-                        {name: "email", content: this[principalProperty].email},
-                        {name: "firstName", content: this[principalProperty].firstName},
+                    url = urlparser.parse(url, true);
+                    var principal = this[principalProperty];
+                    this.sendEmail("email_verify", principal.email, principal.firstName + " " + principal.lastName, [
+                        {name: "email", content: principal.email},
+                        {name: "firstName", content: principal.firstName},
                         {name: "link", content: url.protocol + "//" + url.host.replace(/:.*/, '') +
                             (url.port > 1000 ? ':' + url.port : '') +
-                            "?email=" + encodeURIComponent(this[principalProperty].email) +
-                            "&code=" + this[principalProperty].validateEmailCode + "#verify_email"},
-                        {name: "verificationCode", content: this[principalProperty].validateEmailCode},
+                            "?email=" + encodeURIComponent(principal.email) +
+                            "&code=" + principal.validateEmailCode + "#verify_email"},
+                        {name: "verificationCode", content: principal.validateEmailCode},
                     ]);
 
-                    log("Resent email validation code to " + this[principalProperty].email);
+                    log("Resent email validation code to " + principal.email);
                 }},
             /**
              * Change the password for a logged in user verifying old password
