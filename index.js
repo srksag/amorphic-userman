@@ -199,7 +199,7 @@ module.exports.userman_mixins = function (objectTemplate, requires, moduleConfig
                  * @returns {*}
                  */
                 authenticate: function (password, loggedIn, novalidate) {
-                    if (!novalidate && this.validateEmailCode)
+                    if (!novalidate && this.validateEmailCode && moduleConfig.validateEmailForce)
 
                         throw {code: "registration_unverified",
                             text: "Please click on the link in your verification email to activate this account"};
@@ -390,7 +390,7 @@ module.exports.userman_mixins = function (objectTemplate, requires, moduleConfig
                                     (url.port > 1000 ? ':' + url.port : '') +
                                     "?email=" + encodeURIComponent(this.email) +
                                     "&code=" + principal.validateEmailCode + "#verify_email"},
-                                {name: "verificationCode", content: this[principalProperty].validateEmailCode},
+                                {name: "verificationCode", content: this[principalProperty].validateEmailCode}
 
                             ]);
                         if (moduleConfig.validateEmail && pageInstructions)
@@ -514,7 +514,7 @@ module.exports.userman_mixins = function (objectTemplate, requires, moduleConfig
                                     (url.port > 1000 ? ':' + url.port : '') +
                                     "?email=" + encodeURIComponent(newEmail) +
                                     "&code=" + principal.validateEmailCode + "#verify_email"},
-                                {name: "verificationCode", content: principal.validateEmailCode},
+                                {name: "verificationCode", content: principal.validateEmailCode}
                             ]);
 
                         log("Changed email " + oldEmail + " to " + newEmail);
@@ -538,7 +538,7 @@ module.exports.userman_mixins = function (objectTemplate, requires, moduleConfig
                             (url.port > 1000 ? ':' + url.port : '') +
                             "?email=" + encodeURIComponent(principal.email) +
                             "&code=" + principal.validateEmailCode + "#verify_email"},
-                        {name: "verificationCode", content: principal.validateEmailCode},
+                        {name: "verificationCode", content: principal.validateEmailCode}
                     ]);
 
                     log("Resent email validation code to " + principal.email);

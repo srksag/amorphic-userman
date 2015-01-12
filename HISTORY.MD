@@ -1,3 +1,5 @@
+## 0.1.14
+* New config element validateEmailForce to force email validation prior to login
 ## 0.1.13
 * Change email was not handling emails correctly
 ## 0.1.12
