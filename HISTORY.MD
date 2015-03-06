@@ -1,3 +1,5 @@
+## 0.1.15
+* Case insensitive login
 ## 0.1.14
 * New config element validateEmailForce to force email validation prior to login
 ## 0.1.13

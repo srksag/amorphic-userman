@@ -412,7 +412,7 @@ module.exports.userman_mixins = function (objectTemplate, requires, moduleConfig
                     if (this.loggedIn)
                         throw {code: "already_loggedin", text: "Already logged in"};
 
-                    return Principal.getFromPersistWithQuery({email: this.email}).then( function (principals)
+                    return Principal.getFromPersistWithQuery({email: { $regex: new RegExp("^" + this.email.toLowerCase(), "i") }}).then( function (principals)
                     {
                         if (principals.length == 0) {
                             log(1, "Log In attempt for " + this.email + " failed (invalid email)");
