@@ -1,3 +1,5 @@
+## 0.1.16
+* Made case insensitive login work with special characters
 ## 0.1.15
 * Case insensitive login
 ## 0.1.14
