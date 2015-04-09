@@ -1,3 +1,6 @@
+## 0.1.17
+* Don't auto-login on email verification
+* Don't destroy email change token on verification
 ## 0.1.16
 * Made case insensitive login work with special characters
 ## 0.1.15

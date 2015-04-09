@@ -147,7 +147,7 @@ module.exports.userman_mixins = function (objectTemplate, requires, moduleConfig
                     if (code != this.validateEmailCode)
                         throw {code: "inavlid_validation_link", text: "Incorrect email validation link"}
 
-                    this.validateEmailCode = false;
+                    //this.validateEmailCode = false;
                     this.emailValidated = true;
                     return this.persistSave();
                 },
@@ -415,21 +415,21 @@ module.exports.userman_mixins = function (objectTemplate, requires, moduleConfig
                     return Principal.getFromPersistWithQuery(
                         {email: { $regex: new RegExp("^" + this.email.toLowerCase().replace(/([^0-9a-zA-z])/g, "\\$1") + '$', "i") }}
                     ).then( function (principals)
-                    {
-                        if (principals.length == 0) {
-                            log(1, "Log In attempt for " + this.email + " failed (invalid email)");
-                            throw {code: "invalid_email_or_password",
-                                text: "Incorrect email or password"};
-                        }
-                        var principal = principals[0];
-                        return principal.authenticate(this.password).then( function()
                         {
-                            this.setLoggedInState(principal);
-                            return page ? this.setPage(page) : Q(true);
+                            if (principals.length == 0) {
+                                log(1, "Log In attempt for " + this.email + " failed (invalid email)");
+                                throw {code: "invalid_email_or_password",
+                                    text: "Incorrect email or password"};
+                            }
+                            var principal = principals[0];
+                            return principal.authenticate(this.password).then( function()
+                            {
+                                this.setLoggedInState(principal);
+                                return page ? this.setPage(page) : Q(true);
 
-                        }.bind(this))
+                            }.bind(this))
 
-                    }.bind(this));
+                        }.bind(this));
                 }},
 
             /**
@@ -521,7 +521,7 @@ module.exports.userman_mixins = function (objectTemplate, requires, moduleConfig
 
                         log("Changed email " + oldEmail + " to " + newEmail);
 
-                        return page ? this.setPage(page) : false;
+                        return page ? this.setPage(page) : Q(true);
 
                     }.bind(this));
                 }},
@@ -633,7 +633,7 @@ module.exports.userman_mixins = function (objectTemplate, requires, moduleConfig
                     }.bind(this)).then(function ()
                     {
                         this.setLoggedInState(principal)
-                        return page ? this.setPage(page) : false;
+                        return page ? this.setPage(page) : Q(true);
 
                     }.bind(this))
                 }},
@@ -656,8 +656,8 @@ module.exports.userman_mixins = function (objectTemplate, requires, moduleConfig
 
                 }.bind(this)).then(function ()
                 {
-                    this.setLoggedInState(principal)
-                    return page ? this.setPage(page) : false;
+                    //this.setLoggedInState(principal)
+                    return page ? this.setPage(page) : Q(true);
 
                 }.bind(this))
             }},
