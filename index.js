@@ -617,13 +617,13 @@ module.exports.userman_mixins = function (objectTemplate, requires, moduleConfig
                 {
                     var principal;
 
-                    return Principal.getFromPersistWithQuery({email:this.email}).then(function (principal)
+                    return Principal.getFromPersistWithQuery({email:this.email}).then(function (principals)
                     {
-                        if (principal.length < 1)
+                        if (principals.length < 1)
                             throw {code: "ivalid_password_change_token",
                                 text: "Invalid password change link - make sure you copied correctly from the email"};
 
-                        principal = principal[0];
+                        principal = principals[0];
                         return principal.consumePasswordChangeToken(this.passwordChangeHash, this.newPassword);
 
                     }.bind(this)).then(function ()

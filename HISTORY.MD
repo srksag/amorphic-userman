@@ -1,3 +1,5 @@
+## 0.1.18
+* Fixed lost password
 ## 0.1.17
 * Don't auto-login on email verification
 * Don't destroy email change token on verification
