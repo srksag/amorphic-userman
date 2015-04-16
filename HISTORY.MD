@@ -1,3 +1,11 @@
+## 0.1.19
+For admin users
+- Password lockout on bad attempts
+- Password expiration
+- Forbid use of the last n passwords
+- Forcing password changes on new accounts
+- reset of admin user passwords
+- Composition rules that are principal specific
 ## 0.1.18
 * Fixed lost password
 ## 0.1.17

@@ -23,6 +23,14 @@ module.exports.userman_mixins = function (objectTemplate, requires, moduleConfig
 
     var Controller = requires[moduleConfig.controller.require][moduleConfig.controller.template]
     var principals = moduleConfig.principal instanceof Array ? moduleConfig.principal : [moduleConfig.principal];
+    var maxLoginAttempts = moduleConfig.maxLoginAttempts || 0;
+    var maxLoginPeriodMinutes = moduleConfig.maxLoginAttemptsPeriodHours ? moduleConfig.maxLoginAttemptsPeriodHours * 60 : 0;
+    var temporaryPasswordExpiresMinutes = moduleConfig.temporaryPasswordExpiresHours ?
+        moduleConfig.temporaryPasswordExpiresHours * 60 : 0;
+    var passwordExpiresMinutes = moduleConfig.passwordExpiresDays ? moduleConfig.passwordExpiresDays * 24 * 60 : 0;
+    var maxPreviousPasswords = moduleConfig.maxPreviousPasswords || 0;
+    var defaultAdminRole = moduleConfig.defaultRole || "admin";
+
     var controllerFields = moduleConfig.controller.fields || {};
     var principalProperty = controllerFields.principal || 'principal';
 
@@ -44,17 +52,25 @@ module.exports.userman_mixins = function (objectTemplate, requires, moduleConfig
                 validateEmailCode: {toClient: false, toServer: false, type: String}, // If present status is pending
                 emailValidated:    {toServer: false, type: Boolean, value: false},
 
+                lockedOut:              {toServer: false, type: Boolean, value: false},
+                unsuccesfulLogins:      {toServer: false, toClient: false, type: Array, of: Date, value: []},
+                passwordExpires:        {toServer: false, type: Date},
+                mustChangePassword:     {toServer: false, type: Boolean, value: false},
+                previousSalts:          {toServer: false, toClient: false, type: Array, of: String, value: []},
+                previousHashes:         {toServer: false, toClient: false, type: Array, of: String, value: []},
 
                 role: {toServer: false, type: String, init: "user", values: {
                     "user": "User",             // A normal user
-                    "admin": "Administrator"}   // An administrative user
+                    defaultAdminRole: "Administrator"}   // An administrative user
                 },
+
                 roleSet: {on: "server", body: function (role) {
                     if (this.getSecurityContext.role == 'admin' && (role == 'admin' || role == 'user'))
                         this.role = role;
                     else
                         throw {code: "role_change", text: "You cannot change roles"};
                 }},
+
                 isAdmin: function () {
                     return this.role == 'admin';
                 },
@@ -65,23 +81,43 @@ module.exports.userman_mixins = function (objectTemplate, requires, moduleConfig
                  * @returns {*} promise (true) when done
                  * throws an exception if the password does not meet password rules
                  */
-                establishPassword: function (password, noValidate) {
+                establishPassword: function (password, expires, noValidate, forceChange) {
                     if (!noValidate)
                         this.validateNewPassword(password);
 
-                    // Get a random number as the salt
-                    return this.getSalt().then(function (salt) {
-                        this.passwordSalt = salt;
-                        this.passwordChangeHash = "";
+                    var promises = [];
+                    if (maxPreviousPasswords)
+                        for (var ix = 0; ix < this.previousHashes.length; ++ix)
+                            (function () {
+                                var closureIx = ix;
+                                promises.push(this.getHash(password, this.previousSalts[closureIx]).then(function (hash) {
+                                    if (this.previousHashes[closureIx] === hash)
+                                        throw {code: "last3", text: "Password same as one of last " + maxPreviousPasswords};
+                                    return Q(true);
+                                }.bind(this)));
+                            }.bind(this))()
+                    return Q.all(promises).then(function ()
+                    {
+                        // Get a random number as the salt
+                        return this.getSalt().then(function (salt) {
+                            this.passwordSalt = salt;
+                            this.passwordChangeHash = "";
 
-                        // Create a hash of the password with the salt
-                        return this.getHash(password, salt);
+                            // Create a hash of the password with the salt
+                            return this.getHash(password, salt);
 
-                    }.bind(this)).then(function (hash) {
-                        // Save this for verification later
-                        this.passwordHash = hash;
-                        return this.persistSave().then(function (id) {
-                            return Q(true);
+                        }.bind(this)).then(function (hash) {
+                            // Save this for verification later
+                            this.passwordHash = hash;
+                            while (this.previousSalts.length > maxPreviousPasswords)
+                                this.previousSalts.splice(0, 1);
+                            while (this.previousHashes.length > maxPreviousPasswords)
+                                this.previousHashes.splice(0, 1);
+                            this.previousSalts.push(this.passwordSalt);
+                            this.previousHashes.push(this.passwordHash);
+                            this.passwordExpires = expires;
+                            this.mustChangePassword = forceChange || false;
+                            return this.persistSave();
                         }.bind(this));
 
                     }.bind(this));
@@ -94,6 +130,8 @@ module.exports.userman_mixins = function (objectTemplate, requires, moduleConfig
                  * @return {*}
                  */
                 validateNewPassword: function (password) {
+                    if (typeof(this.passwordValidation) == "function")
+                        return this.passwordValidation(password);
                     if (password.length < 6 || password.length > 30 || !password.match(/[A-Za-z]/) || !password.match(/[0-9]/))
 
                         throw {code: "password_composition",
@@ -204,16 +242,44 @@ module.exports.userman_mixins = function (objectTemplate, requires, moduleConfig
                         throw {code: "registration_unverified",
                             text: "Please click on the link in your verification email to activate this account"};
 
-                    return this.getHash(password, this.passwordSalt).then(function (hash) {
-                        if (this.passwordHash !== hash)
-                            throw loggedIn ?
-                            {code: "invalid_password", text: "Incorrect password"} :
-                            {code: "invalid_email_or_password", text: "Incorrect email or password"};
+                    if (this.lockedOut)
+                        throw {code: "locked out", text: "Please contact your security administrator"};
 
+                    if (this.passwordExpires && (new Date()).getTime() > this.passwordExpires.getTime())
+                        throw {code: "loginexpired", text: "Your password has expired"};
+
+                    return this.getHash(password, this.passwordSalt).then(function (hash) {
+                        if (this.passwordHash !== hash) {
+                            return this.badLogin().then(function () {
+                                this.persistSave();
+                                throw loggedIn ?
+                                {code: "invalid_password", text: "Incorrect password"} :
+                                {code: "invalid_email_or_password", text: "Incorrect email or password"};
+                            }.bind(this));
+                        } else {
+                        }
                         return Q(true);
 
                     }.bind(this))
+                },
+
+                badLogin: function () {
+                    if (maxLoginAttempts) {
+                        this.unsuccesfulLogins.push(new Date());
+                        this.unsuccesfulLogins = _.filter(this.unsuccesfulLogins, function (attempt) {
+                            return (attempt.getTime() > ((new Date()).getTime() - 1000 * 60 * maxLoginPeriodMinutes));
+                        });
+                        if (this.unsuccesfulLogins.length > maxLoginAttempts) {
+                            if (this.role != defaultAdminRole) {
+                                this.lockedOut = true;
+                            }
+                            return Q.delay(10000)
+                        }
+                        return Q.delay(1000);
+                    } else
+                        return Q.delay(2000)
                 }
+
             });
     }
 
@@ -261,7 +327,7 @@ module.exports.userman_mixins = function (objectTemplate, requires, moduleConfig
             loggedInRole:           {toServer: false, type: String},
 
             isAdmin: function () {
-                return this.loggedIn && this.loggedInRole == "admin";
+                return this.loggedIn && this.loggedInRole == defaultAdminRole;
             },
             isLoggedIn: function () {
                 return !!this.loggedIn;
@@ -269,15 +335,14 @@ module.exports.userman_mixins = function (objectTemplate, requires, moduleConfig
             securityContext:        {type: SecurityContext},
 
             createAdmin: function () {
-                Principal.countFromPersistWithQuery({role: "admin"}).then(function (count) {
+                Principal.countFromPersistWithQuery({role: defaultAdminRole}).then(function (count) {
                     if (count == 0) {
                         var admin = new Principal();
-                        admin.role = "admin";
                         admin.email = moduleConfig.defaultEmail || "amorphic@amorphic.com";
                         admin.firstName = "Admin";
                         admin.lastName = "User";
-                        admin.role = moduleConfig.defaultRole || "admin";
-                        return admin.establishPassword(moduleConfig.defaultPassword || "admin", true);
+                        admin.role = defaultAdminRole;
+                        return admin.establishPassword(moduleConfig.defaultPassword || "admin", null, true, true);
                     } else
                         return Q(false);
                 });
@@ -288,36 +353,49 @@ module.exports.userman_mixins = function (objectTemplate, requires, moduleConfig
              * new users. The principal info comes from the an object which should have the following properties:
              *
              * firstName, lastName, email, newPassword, confirmPassword, role
+             *
+             * Also used to reset a password
              */
             createNewAdmin: {
                 on: "server",
                 validate: function(){
                     return this.validate(document.getElementById('publicRegisterFields'));
                 },
-                body: function(newAdmin, url, pageConfirmation, pageInstructions){
+                body: function(adminUser, url, pageConfirmation, pageInstructions, reset){
 
                     // Check for security context of security admin
                     if(this.loggedInRole !== moduleConfig.defaultRole){
                         throw {code: 'cannotcreateadmin', text: "Only a security admin can create users"};
                     }
-                    if (newAdmin.newPassword != newAdmin.confirmPassword)
+                    if (adminUser.newPassword != adminUser.confirmPassword)
                         throw {code: 'passwordmismatch', text: "Password's are not the same"};
 
                     var principal;
 
                     url = urlparser.parse(url, true);
-                    return Principal.countFromPersistWithQuery({email: newAdmin.email}).then( function (count)
+                    return Principal.getFromPersistWithQuery({email: adminUser.email}).then( function (principals)
                     {
-                        if (count > 0)
-                            throw {code: "email_registered", text:"This email is already registered"};
+                        if (reset) {
+                            if (principals.length == 0)
+                                throw {code: "email_notfound", text: "Can't find this user"};
+                            principal = principals[0];
+                        } else {
+                            if (principals.length > 0)
+                                throw {code: "email_registered", text:"This email is already registered"};
+                            principal = new Principal();
+                        }
 
                         // this[principalProperty] = this[principalProperty] || new Principal();
-                        principal = new Principal();
-                        principal.email = newAdmin.email;
-                        principal.firstName = newAdmin.firstName;
-                        principal.lastName = newAdmin.lastName;
-                        principal.role = newAdmin.role;
-                        return principal.establishPassword(newAdmin.newPassword);
+                        principal.lockedOut = false;
+                        if (!reset) {
+                            principal.email = adminUser.email;
+                            principal.firstName = adminUser.firstName;
+                            principal.lastName = adminUser.lastName;
+                            principal.role = adminUser.role;
+                        }
+                        return principal.establishPassword(adminUser.newPassword,
+                                principal.role == 'admin' ? null :
+                                new Date((new Date()).getTime() + temporaryPasswordExpiresMinutes * 1000 * 60), false, true);
 
                     }.bind(this)).then( function() {
                         if (moduleConfig.validateEmail)
@@ -340,7 +418,7 @@ module.exports.userman_mixins = function (objectTemplate, requires, moduleConfig
                             return this.setPage(pageInstructions);
                         if (!moduleConfig.validateEmail && pageConfirmation)
                             return this.setPage(pageConfirmation);
-
+                        return Q(true);
                     }.bind(this))
                 }},
 
@@ -409,27 +487,29 @@ module.exports.userman_mixins = function (objectTemplate, requires, moduleConfig
                 validate: function () {return this.validate(document.getElementById('publicLoginFields'))},
                 body: function(page)
                 {
+                    var principal;
                     if (this.loggedIn)
                         throw {code: "already_loggedin", text: "Already logged in"};
 
                     return Principal.getFromPersistWithQuery(
                         {email: { $regex: new RegExp("^" + this.email.toLowerCase().replace(/([^0-9a-zA-z])/g, "\\$1") + '$', "i") }}
-                    ).then( function (principals)
-                        {
+                    ).then( function (principals) {
                             if (principals.length == 0) {
                                 log(1, "Log In attempt for " + this.email + " failed (invalid email)");
                                 throw {code: "invalid_email_or_password",
                                     text: "Incorrect email or password"};
                             }
-                            var principal = principals[0];
-                            return principal.authenticate(this.password).then( function()
-                            {
+                            principal = principals[0];
+                            return principal.authenticate(this.password);
+                        }.bind(this)).then( function() {
+                            if (principal.mustChangePassword && !this.newPassword)
+                                throw {code: "changePassword", text: "Please change your password"};
+                            return principal.mustChangePassword ? this.changePasswordForPrincipal(principal) : Q(true);
+                        }.bind(this)).then( function (status) {
+                            if (status)
                                 this.setLoggedInState(principal);
-                                return page ? this.setPage(page) : Q(true);
-
-                            }.bind(this))
-
-                        }.bind(this));
+                            return page ? this.setPage(page) : Q(true);
+                        }.bind(this))
                 }},
 
             /**
@@ -547,31 +627,40 @@ module.exports.userman_mixins = function (objectTemplate, requires, moduleConfig
                 }},
             /**
              * Change the password for a logged in user verifying old password
+             * Also called from login on a force change password so technically you don't have to be logged in
              */
             changePassword: {
                 on: "server",
                 validate: function () {return this.validate(document.getElementById('changePasswordFields'))},
                 body: function(page)
                 {
-                    return this[principalProperty].authenticate(this.password, true).then(function()
-                    {
-                        return this[principalProperty].establishPassword(this.newPassword).then(function ()
-                        {
-                            log("Changed password for " + this[principalProperty].email);
+                    if (!this.loggedIn)
+                        throw {code: "not_loggedin", text:"Not logged in"};
+                    return this.changePasswordForPrincipal(this[principalProperty], page);
+                }},
 
-                            this.sendEmail("password_changed",
-                                this[principalProperty].email, this[principalProperty].firstName,
-                                [
-                                    {name: "firstName", content: this[principalProperty].firstName}
-                                ]);
+
+            changePasswordForPrincipal: function (principal, page) {
+                return principal.authenticate(this.password, true).then(function()
+                {
+                    return principal.establishPassword(this.newPassword,
+                        passwordExpiresMinutes ?
+                            new Date((new Date()).getTime() + passwordExpiresMinutes * 1000 * 60) : null).then(function ()
+                        {
+                            log("Changed password for " + principal.email);
+                            if (this.sendEMail)
+                                this.sendEmail("password_changed",
+                                    principal.email, principal.firstName,
+                                    [
+                                        {name: "firstName", content: principal.firstName}
+                                    ]);
 
                             return page ? this.setPage(page) : Q(true);
 
                         }.bind(this))
 
-                    }.bind(this));
-                }},
-
+                }.bind(this));
+            },
             /**
              * Request that an email be sent with a password change link
              */
