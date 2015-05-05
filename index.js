@@ -30,6 +30,7 @@ module.exports.userman_mixins = function (objectTemplate, requires, moduleConfig
     var passwordExpiresMinutes = moduleConfig.passwordExpiresDays ? moduleConfig.passwordExpiresDays * 24 * 60 : 0;
     var maxPreviousPasswords = moduleConfig.maxPreviousPasswords || 0;
     var defaultAdminRole = moduleConfig.defaultRole || "admin";
+    var deferEmailChange = moduleConfig.deferEmailChange ? true : false;
 
     var controllerFields = moduleConfig.controller.fields || {};
     var principalProperty = controllerFields.principal || 'principal';
@@ -492,7 +493,7 @@ module.exports.userman_mixins = function (objectTemplate, requires, moduleConfig
                         throw {code: "already_loggedin", text: "Already logged in"};
 
                     return Principal.getFromPersistWithQuery(
-                        {email: { $regex: new RegExp("^" + this.email.toLowerCase().replace(/([^0-9a-zA-z])/g, "\\$1") + '$', "i") }}
+                        {email: { $regex: new RegExp("^" + this.email.toLowerCase().replace(/([^0-9a-zA-Z])/g, "\\$1") + '$', "i") }}
                     ).then( function (principals) {
                             if (principals.length == 0) {
                                 log(1, "Log In attempt for " + this.email + " failed (invalid email)");
@@ -508,6 +509,50 @@ module.exports.userman_mixins = function (objectTemplate, requires, moduleConfig
                         }.bind(this)).then( function (status) {
                             if (status)
                                 this.setLoggedInState(principal);
+                            return page ? this.setPage(page) : Q(true);
+                        }.bind(this))
+                }},
+
+            /**
+             * login the user with changed email. Also verify email code
+             */
+            publicLoginWithNewEmail: {
+                on: "server",
+                validate: function () {return this.validate(document.getElementById('publicLoginFields'))},
+                body: function(page)
+                {
+                    var principal;
+
+                    return Principal.getFromPersistWithQuery(
+                        {newEmail: { $regex: new RegExp("^" + this.email.toLowerCase().replace(/([^0-9a-zA-Z])/g, "\\$1") + '$', "i") }}
+                    ).then( function (principals) {
+                            if (principals.length == 0) {
+                                log(1, "Log In attempt for " + this.email + " failed (invalid email)");
+                                throw {code: "invalid_email_or_password",
+                                    text: "Incorrect email or password"};
+                            }
+                            principal = principals[0];
+                            return principal.authenticate(this.password);
+                        }.bind(this)).then( function() {
+                            if (principal.mustChangePassword && !this.newPassword)
+                                throw {code: "changePassword", text: "Please change your password"};
+                            return principal.mustChangePassword ? this.changePasswordForPrincipal(principal) : Q(true);
+                        }.bind(this)).then( function (status) {
+                            return principal.consumeEmailVerificationCode(this.verifyEmailCode);
+                        }.bind(this)).then(function(){
+                            this.setLoggedInState(principal);
+
+                            principal.email = this.email;
+                            principal.newEmail = ""; // No need to track the changed email anymore
+                            principal.persistSave();
+
+                            // Send an email changed confirmation email
+                            this.sendEmail("confirm_emailchange", this.email, principal.email,
+                                    principal.firstName + " " + principal.lastName, [
+                                    {name: "email", content: this.email},
+                                    {name: "firstName", content: principal.firstName}
+                                ]);
+
                             return page ? this.setPage(page) : Q(true);
                         }.bind(this))
                 }},
@@ -574,12 +619,13 @@ module.exports.userman_mixins = function (objectTemplate, requires, moduleConfig
                             return Q(false);
                         }
                     }.bind(this)).then( function() {
-                        this.email = newEmail;
+                        if (!deferEmailChange)
+                            this.email = newEmail;
 
-
-                        principal.email = newEmail;
+                        principal.newEmail = newEmail;
                         principal.persistSave();
 
+                        // Send an email to old email address which is purely informational
                         this.sendEmail("email_changed", oldEmail, principal.email,
                                 principal.firstName + " " + principal.lastName, [
                                 {name: "oldEmail", content: oldEmail},
@@ -587,6 +633,8 @@ module.exports.userman_mixins = function (objectTemplate, requires, moduleConfig
                                 {name: "firstName", content: principal.firstName}
                             ]);
 
+                        // Send an email to new email address asking to verify the new email
+                        // address
                         this.sendEmail(moduleConfig.validateEmail ? "email_changed_verify" : "email_changed",
                             newEmail,  principal.firstName + " " + principal.lastName, [
                                 {name: "oldEmail", content: oldEmail},
@@ -595,7 +643,7 @@ module.exports.userman_mixins = function (objectTemplate, requires, moduleConfig
                                 {name: "link", content: url.protocol + "//" + url.host.replace(/:.*/, '') +
                                     (url.port > 1000 ? ':' + url.port : '') +
                                     "?email=" + encodeURIComponent(newEmail) +
-                                    "&code=" + principal.validateEmailCode + "#verify_email"},
+                                    "&code=" + principal.validateEmailCode + (deferEmailChange ? "#verify_email_change" : "#verify_email")},
                                 {name: "verificationCode", content: principal.validateEmailCode}
                             ]);
 

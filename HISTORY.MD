@@ -1,3 +1,5 @@
+## 0.1.20
+- Support for deferred email changes
 ## 0.1.19
 For admin users
 - Password lockout on bad attempts
