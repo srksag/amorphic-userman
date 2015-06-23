@@ -1,3 +1,5 @@
+## 0.1.21
+- Make sure email validation code has leading zeros rather than suppressing them
 ## 0.1.20
 - Support for deferred email changes
 ## 0.1.19
