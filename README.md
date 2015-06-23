@@ -185,6 +185,3 @@ the amorphic-mandril module these emails can be sent via mandrill.
 ## License
 
 amorhic-userman is licensed under the MIT license
-
-
-
