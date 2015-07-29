@@ -466,9 +466,9 @@ module.exports.userman_mixins = function (objectTemplate, requires, moduleConfig
                                 {name: "firstName", content: this.firstName},
                                 {name: "email", content: this.email},
                                 {name: "link", content: url.protocol + "//" + url.host.replace(/:.*/, '') +
-                                    (url.port > 1000 ? ':' + url.port : '') +
-                                    "?email=" + encodeURIComponent(this.email) +
-                                    "&code=" + principal.validateEmailCode + "#verify_email"},
+                                (url.port > 1000 ? ':' + url.port : '') +
+                                "?email=" + encodeURIComponent(this.email) +
+                                "&code=" + principal.validateEmailCode + "#verify_email"},
                                 {name: "verificationCode", content: this[principalProperty].validateEmailCode}
 
                             ]);
@@ -486,7 +486,7 @@ module.exports.userman_mixins = function (objectTemplate, requires, moduleConfig
             publicLogin: {
                 on: "server",
                 validate: function () {return this.validate(document.getElementById('publicLoginFields'))},
-                body: function(page)
+                body: function(page, forceChange)
                 {
                     var principal;
                     if (this.loggedIn)
@@ -503,9 +503,10 @@ module.exports.userman_mixins = function (objectTemplate, requires, moduleConfig
                             principal = principals[0];
                             return principal.authenticate(this.password);
                         }.bind(this)).then( function() {
-                            if (principal.mustChangePassword && !this.newPassword)
+                            forceChange = forceChange || principal.mustChangePassword;
+                            if (forceChange && !this.newPassword)
                                 throw {code: "changePassword", text: "Please change your password"};
-                            return principal.mustChangePassword ? this.changePasswordForPrincipal(principal) : Q(true);
+                            return forceChange ? this.changePasswordForPrincipal(principal) : Q(true);
                         }.bind(this)).then( function (status) {
                             if (status)
                                 this.setLoggedInState(principal);
@@ -548,7 +549,7 @@ module.exports.userman_mixins = function (objectTemplate, requires, moduleConfig
 
                             // Send an email changed confirmation email
                             this.sendEmail("confirm_emailchange", this.email, principal.email,
-                                    principal.firstName + " " + principal.lastName, [
+                                principal.firstName + " " + principal.lastName, [
                                     {name: "email", content: this.email},
                                     {name: "firstName", content: principal.firstName}
                                 ]);
@@ -627,7 +628,7 @@ module.exports.userman_mixins = function (objectTemplate, requires, moduleConfig
 
                         // Send an email to old email address which is purely informational
                         this.sendEmail("email_changed", oldEmail, principal.email,
-                                principal.firstName + " " + principal.lastName, [
+                            principal.firstName + " " + principal.lastName, [
                                 {name: "oldEmail", content: oldEmail},
                                 {name: "email", content: newEmail},
                                 {name: "firstName", content: principal.firstName}
@@ -641,13 +642,13 @@ module.exports.userman_mixins = function (objectTemplate, requires, moduleConfig
                                 {name: "email", content: newEmail},
                                 {name: "firstName", content: principal.firstName},
                                 {name: "link", content: url.protocol + "//" + url.host.replace(/:.*/, '') +
-                                    (url.port > 1000 ? ':' + url.port : '') +
-                                    "?email=" + encodeURIComponent(newEmail) +
-                                    "&code=" + principal.validateEmailCode + (deferEmailChange ? "#verify_email_change" : "#verify_email")},
+                                (url.port > 1000 ? ':' + url.port : '') +
+                                "?email=" + encodeURIComponent(newEmail) +
+                                "&code=" + principal.validateEmailCode + (deferEmailChange ? "#verify_email_change" : "#verify_email")},
                                 {name: "verificationCode", content: principal.validateEmailCode}
                             ]);
 
-                        log("Changed email " + oldEmail + " to " + newEmail);
+                        log(1, "Changed email " + oldEmail + " to " + newEmail);
 
                         return page ? this.setPage(page) : Q(true);
 
@@ -665,13 +666,13 @@ module.exports.userman_mixins = function (objectTemplate, requires, moduleConfig
                         {name: "email", content: principal.email},
                         {name: "firstName", content: principal.firstName},
                         {name: "link", content: url.protocol + "//" + url.host.replace(/:.*/, '') +
-                            (url.port > 1000 ? ':' + url.port : '') +
-                            "?email=" + encodeURIComponent(principal.email) +
-                            "&code=" + principal.validateEmailCode + "#verify_email"},
+                        (url.port > 1000 ? ':' + url.port : '') +
+                        "?email=" + encodeURIComponent(principal.email) +
+                        "&code=" + principal.validateEmailCode + "#verify_email"},
                         {name: "verificationCode", content: principal.validateEmailCode}
                     ]);
 
-                    log("Resent email validation code to " + principal.email);
+                    log(1, "Resent email validation code to " + principal.email);
                 }},
             /**
              * Change the password for a logged in user verifying old password
@@ -695,7 +696,7 @@ module.exports.userman_mixins = function (objectTemplate, requires, moduleConfig
                         passwordExpiresMinutes ?
                             new Date((new Date()).getTime() + passwordExpiresMinutes * 1000 * 60) : null).then(function ()
                         {
-                            log("Changed password for " + principal.email);
+                            log(1, "Changed password for " + principal.email);
                             if (this.sendEMail)
                                 this.sendEmail("password_changed",
                                     principal.email, principal.firstName,
@@ -730,9 +731,9 @@ module.exports.userman_mixins = function (objectTemplate, requires, moduleConfig
                             this.sendEmail("password_reset",
                                 this.email, principal.firstName, [
                                     {name: "link", content: url.protocol + "//" + url.host.replace(/:.*/, '') +
-                                        (url.port > 1000 ? ':' + url.port : '') +
-                                        "?email=" + encodeURIComponent(this.email) +
-                                        "&token=" + token + "#reset_password_from_code"},
+                                    (url.port > 1000 ? ':' + url.port : '') +
+                                    "?email=" + encodeURIComponent(this.email) +
+                                    "&token=" + token + "#reset_password_from_code"},
                                     {name: "firstName", content: principal.firstName}
                                 ]);
 

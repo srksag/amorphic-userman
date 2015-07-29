@@ -127,11 +127,13 @@ a confirmation page to let the user know they were successfully registered.
 Expects controller properties, email, firstName, lastName and newPassword.
   
   
-* __publicLogin(page)__ -
+* __publicLogin(page, force)__ -
 Logs in a principal.  
 A page can be passed in as a path that will be passed back in a call to
 the setPage method to route the user to a page after login.
-Expects controller properties, email and password.
+Expects controller properties, email and password.  
+Also expects newPassword to be passed in if force is set to true or in the case of
+a password that must be changed at initial setup
   
   
 * __publicLogout()__ -
@@ -181,6 +183,12 @@ email is expected to be the email= parameter.
 userman uses a method sendMail(templateName, emailAddress, firstName, insertions) to send emails.  The insertions
 parameter is an array of objects that contain a name/parameter property pair to be substitued in the mails.  Using
 the amorphic-mandril module these emails can be sent via mandrill.
+
+* __createNewAdmin()__ -
+Create a new principal if one does not exist. This method is used by the currently logged in user to create
+new users. The principal info comes from the an object which should have the following properties:
+firstName, lastName, email, newPassword, confirmPassword, role
+      
 
 ## License
 
