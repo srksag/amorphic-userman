@@ -26,7 +26,7 @@ module.exports.userman_mixins = function (objectTemplate, requires, moduleConfig
     var maxLoginAttempts = moduleConfig.maxLoginAttempts || 0;
     var maxLoginPeriodMinutes = moduleConfig.maxLoginAttemptsPeriodHours ? moduleConfig.maxLoginAttemptsPeriodHours * 60 : 0;
     var temporaryPasswordExpiresMinutes = moduleConfig.temporaryPasswordExpiresHours ?
-        moduleConfig.temporaryPasswordExpiresHours * 60 : 0;
+    moduleConfig.temporaryPasswordExpiresHours * 60 : 0;
     var passwordExpiresMinutes = moduleConfig.passwordExpiresDays ? moduleConfig.passwordExpiresDays * 24 * 60 : 0;
     var maxPreviousPasswords = moduleConfig.maxPreviousPasswords || 0;
     var defaultAdminRole = moduleConfig.defaultRole || "admin";
@@ -53,6 +53,7 @@ module.exports.userman_mixins = function (objectTemplate, requires, moduleConfig
                 validateEmailCode: {toClient: false, toServer: false, type: String}, // If present status is pending
                 emailValidated:    {toServer: false, type: Boolean, value: false},
 
+                suspended:              {toServer: false, type: Boolean, value: false},
                 lockedOut:              {toServer: false, type: Boolean, value: false},
                 unsuccesfulLogins:      {toServer: false, toClient: false, type: Array, of: Date, value: []},
                 passwordExpires:        {toServer: false, type: Date},
@@ -66,14 +67,37 @@ module.exports.userman_mixins = function (objectTemplate, requires, moduleConfig
                 },
 
                 roleSet: {on: "server", body: function (role) {
-                    if (this.getSecurityContext.role == 'admin' && (role == 'admin' || role == 'user'))
+                    if (this.getSecurityContext().role == defaultAdminRole)
                         this.role = role;
                     else
                         throw {code: "role_change", text: "You cannot change roles"};
                 }},
+                suspendUser: {on: "server", body: function (suspended) {
+                    if (this.getSecurityContext().role == defaultAdminRole && (this.role != defaultAdminRole))
+                        this.suspended = suspended;
+                    else
+                        throw {code: "suspend_change", text: "You cannot suspend/resume"};
+                    return this.persistSave();
+                }},
+                changeEmail: {on: "server", body: function (email) {
+                    if (this.getSecurityContext().role == defaultAdminRole && (this.role != defaultAdminRole))
+                        return Principal.getFromPersistWithQuery({email: email}).then(function (principals) {
+                            if (principals.length > 0)
+                                throw {code: "email_change_exists", text: "Email already exists"};
+                            this.email = email;
+                            return this.persistSave();
+                        }.bind(this));
+                    else
+                        throw {code: "email_change", text: "You cannot change email"};
+                }},
+
+                setRoleForUser: {on: "server", body: function (role) {
+                    this.roleSet(role);
+                    return this.persistSave();
+                }},
 
                 isAdmin: function () {
-                    return this.role == 'admin';
+                    return this.role == defaultAdminRole;
                 },
                 /**
                  * Create a password hash and save the object
@@ -206,7 +230,7 @@ module.exports.userman_mixins = function (objectTemplate, requires, moduleConfig
                     }.bind(this)).then(function (hash) {
                         this.passwordChangeHash = hash;
                         this.passwordChangeExpires = new Date(((new Date()).getTime() +
-                            (moduleConfig.passwordChangeExpiresHours || 24) * 60 * 60 * 1000));
+                        (moduleConfig.passwordChangeExpiresHours || 24) * 60 * 60 * 1000));
                         return this.persistSave();
                     }.bind(this)).then(function () {
                         return Q(token);
@@ -297,7 +321,7 @@ module.exports.userman_mixins = function (objectTemplate, requires, moduleConfig
                 return !!this.role;
             },
             isAdmin: function () {
-                return this.isLoggedIn() && this.principal.role == 'admin';
+                return this.isLoggedIn() && this.principal.role == defaultAdminRole;
             }
         });
 
@@ -373,7 +397,7 @@ module.exports.userman_mixins = function (objectTemplate, requires, moduleConfig
 
                     var principal;
 
-                    url = urlparser.parse(url, true);
+                    url = url ? urlparser.parse(url, true) : "";
                     return Principal.getFromPersistWithQuery({email: adminUser.email}).then( function (principals)
                     {
                         if (reset) {
@@ -395,31 +419,32 @@ module.exports.userman_mixins = function (objectTemplate, requires, moduleConfig
                             principal.role = adminUser.role;
                         }
                         return principal.establishPassword(adminUser.newPassword,
-                                principal.role == 'admin' ? null :
+                            principal.role == defaultAdminRole ? null :
                                 new Date((new Date()).getTime() + temporaryPasswordExpiresMinutes * 1000 * 60), false, true);
 
                     }.bind(this)).then( function() {
                         if (moduleConfig.validateEmail)
                             return principal.setEmailVerificationCode();
                         else {
-                            return Q(false);
+                            return Q();
                         }
                     }.bind(this)).then (function ()
                     {
-                        this.sendEmail(moduleConfig.validateEmail ? "register_verify": "register",
-                            principal.email, this.firstName + " " + this.lastName, [
-                                {name: "firstName", content: this.firstName},
-                                {name: "email", content: this.email},
-                                {name: "link", content: url.protocol + "//" + url.host.replace(/:.*/, '') +
+                        if (url)
+                            this.sendEmail(moduleConfig.validateEmail ? "register_verify": "register",
+                                principal.email, this.firstName + " " + this.lastName, [
+                                    {name: "firstName", content: this.firstName},
+                                    {name: "email", content: this.email},
+                                    {name: "link", content: url.protocol + "//" + url.host.replace(/:.*/, '') +
                                     (url.port > 1000 ? ':' + url.port : '') +
                                     "?email=" + encodeURIComponent(this.email) +
                                     "&code=" + principal.validateEmailCode + "#verify_email"}
-                            ]);
+                                ]);
                         if (moduleConfig.validateEmail && pageInstructions)
                             return this.setPage(pageInstructions);
                         if (!moduleConfig.validateEmail && pageConfirmation)
                             return this.setPage(pageConfirmation);
-                        return Q(true);
+                        return Q(principal);
                     }.bind(this))
                 }},
 
@@ -495,7 +520,7 @@ module.exports.userman_mixins = function (objectTemplate, requires, moduleConfig
                     return Principal.getFromPersistWithQuery(
                         {email: { $regex: new RegExp("^" + this.email.toLowerCase().replace(/([^0-9a-zA-Z])/g, "\\$1") + '$', "i") }}
                     ).then( function (principals) {
-                            if (principals.length == 0) {
+                            if (principals.length == 0 || principals[0].suspended) {
                                 log(1, "Log In attempt for " + this.email + " failed (invalid email)");
                                 throw {code: "invalid_email_or_password",
                                     text: "Incorrect email or password"};
@@ -568,7 +593,7 @@ module.exports.userman_mixins = function (objectTemplate, requires, moduleConfig
                 this[principalProperty] = principal;
 
                 // One way so you can't spoof from client
-                this.securityContext = new SecurityContext(principal);
+                this.securityContext = new SecurityContext(principal, principal.role);
             },
 
             /**

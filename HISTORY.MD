@@ -1,3 +1,9 @@
+## 0.1.24
+- Changes for admin users
+## 0.1.23
+- Typeo in password composition 
+## 0.1.22
+- Allow login to provide new password and change password
 ## 0.1.21
 - Make sure email validation code has leading zeros rather than suppressing them
 ## 0.1.20
