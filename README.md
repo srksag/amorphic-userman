@@ -191,7 +191,7 @@ userman uses a method **sendEmail()** to send user-related emails.  It has four 
     * `'email_changed'` - email sent to old email address which is purely informational
     * `'email_changed_verify'` - email sent to new email address asking to verify the new email
     * `'password_reset'` - email to reset a user's password
-    * `'email_verify'` - user successfully changes account email
+    * `'email_verify'` - resend change email validation code
     * `'confirm_emailchange'` - verification email for changing a user's account email
 * `emailAddress`
     * user's email address 
@@ -199,7 +199,7 @@ userman uses a method **sendEmail()** to send user-related emails.  It has four 
     * user's name
 * `insertions`
     * Array of objects that contain a name/parameter property pair: `[{name: 'email', content: 'joe@gmail.com'}, {name: "firstName", content: 'Joe'}]`
-    * This format is meant to work with the [amorphic-mandrill](https://github.com/selsamman/amorphic-mandrill) to easily send the emails via mandrill.
+    * This format is meant to work with the [amorphic-mandrill](https://github.com/selsamman/amorphic-mandrill) module to easily send emails via mandrill.
       
 
 ## License
