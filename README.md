@@ -171,7 +171,7 @@ the setPage method to route the user to a page when done.
 Controller properties passwordChangeHash is expected to contains the token= parameter from the url
 and newPassword the new password to be set.
   
-  
+
 * __publicVerifyEmailFromCode(page)__ -
 Verifies that a principal has a valid email address by verifying a token that was parsed from the email sent
 by publicRegister.
@@ -180,7 +180,7 @@ the setPage method to route the user to a page after login.
 Controller properties verifyEmailCode is expected to contains the code= parameter from the url,
 email is expected to be the email= parameter.
 
-userman uses a method sendMail(templateName, emailAddress, firstName, insertions) to send emails.  The insertions
+userman uses a method sendEmail(templateName, emailAddress, firstName, insertions) to send emails.  The insertions
 parameter is an array of objects that contain a name/parameter property pair to be substitued in the mails.  Using
 the amorphic-mandril module these emails can be sent via mandrill.
 
