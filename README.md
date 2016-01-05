@@ -12,6 +12,8 @@ Install on node via  npm:
 
     npm install amorphic-userman
 
+## If you are using releases prior to 1.25 please update immediately to avoid an information leak
+
 ## Example
 In the config.json file you add a modules section like this:
 

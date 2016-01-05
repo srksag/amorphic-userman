@@ -292,7 +292,7 @@ module.exports.userman_mixins = function (objectTemplate, requires, moduleConfig
                     if (maxLoginAttempts) {
                         this.unsuccesfulLogins.push(new Date());
                         this.unsuccesfulLogins = _.filter(this.unsuccesfulLogins, function (attempt) {
-                            return (attempt.getTime() > ((new Date()).getTime() - 1000 * 60 * maxLoginPeriodMinutes));
+                            return ((new Date(attempt)).getTime() > ((new Date()).getTime() - 1000 * 60 * maxLoginPeriodMinutes));
                         });
                         if (this.unsuccesfulLogins.length > maxLoginAttempts) {
                             if (this.role != defaultAdminRole) {
@@ -517,26 +517,34 @@ module.exports.userman_mixins = function (objectTemplate, requires, moduleConfig
                     if (this.loggedIn)
                         throw {code: "already_loggedin", text: "Already logged in"};
 
-                    return Principal.getFromPersistWithQuery(
-                        {email: { $regex: new RegExp("^" + this.email.toLowerCase().replace(/([^0-9a-zA-Z])/g, "\\$1") + '$', "i") }}
-                    ).then( function (principals) {
-                            if (principals.length == 0 || principals[0].suspended) {
-                                log(1, "Log In attempt for " + this.email + " failed (invalid email)");
-                                throw {code: "invalid_email_or_password",
-                                    text: "Incorrect email or password"};
-                            }
-                            principal = principals[0];
-                            return principal.authenticate(this.password);
-                        }.bind(this)).then( function() {
-                            forceChange = forceChange || principal.mustChangePassword;
-                            if (forceChange && !this.newPassword)
-                                throw {code: "changePassword", text: "Please change your password"};
-                            return forceChange ? this.changePasswordForPrincipal(principal) : Q(true);
-                        }.bind(this)).then( function (status) {
-                            if (status)
-                                this.setLoggedInState(principal);
-                            return page ? this.setPage(page) : Q(true);
-                        }.bind(this))
+                    var query = Principal.isKnex && Principal.isKnex() ?
+                        Principal.getFromPersistWithQuery(
+                            {email: this.email.toLowerCase()},
+                            null, null, null, true)
+                        : Principal.getFromPersistWithQuery(
+                        {email: { $regex: new RegExp("^" + this.email.toLowerCase().replace(/([^0-9a-zA-Z])/g, "\\$1") + '$', "i") }},
+                        null, null, null, true);
+                    return query.then(function (principals) {
+                        if (principals.length == 0 || principals[0].suspended) {
+                            log(1, "Log In attempt for " + this.email + " failed (invalid email)");
+                            throw {code: "invalid_email_or_password",
+                                text: "Incorrect email or password"};
+                        }
+                        principal = principals[0];
+                        return principal.authenticate(this.password);
+                    }.bind(this)).then( function() {
+                        return Principal.getFromPersistWithId(principal._id);
+                    }.bind(this)).then( function(p) {
+                        principal = p;
+                        forceChange = forceChange || principal.mustChangePassword;
+                        if (forceChange && !this.newPassword)
+                            throw {code: "changePassword", text: "Please change your password"};
+                        return forceChange ? this.changePasswordForPrincipal(principal) : Q(true);
+                    }.bind(this)).then( function (status) {
+                        if (status)
+                            this.setLoggedInState(principal);
+                        return page ? this.setPage(page) : Q(true);
+                    }.bind(this))
                 }},
 
             /**
@@ -550,37 +558,41 @@ module.exports.userman_mixins = function (objectTemplate, requires, moduleConfig
                     var principal;
 
                     return Principal.getFromPersistWithQuery(
-                        {newEmail: { $regex: new RegExp("^" + this.email.toLowerCase().replace(/([^0-9a-zA-Z])/g, "\\$1") + '$', "i") }}
+                        {newEmail: { $regex: new RegExp("^" + this.email.toLowerCase().replace(/([^0-9a-zA-Z])/g, "\\$1") + '$', "i") }},
+                        null, null, null, true
                     ).then( function (principals) {
-                            if (principals.length == 0) {
-                                log(1, "Log In attempt for " + this.email + " failed (invalid email)");
-                                throw {code: "invalid_email_or_password",
-                                    text: "Incorrect email or password"};
-                            }
-                            principal = principals[0];
-                            return principal.authenticate(this.password);
-                        }.bind(this)).then( function() {
-                            if (principal.mustChangePassword && !this.newPassword)
-                                throw {code: "changePassword", text: "Please change your password"};
-                            return principal.mustChangePassword ? this.changePasswordForPrincipal(principal) : Q(true);
-                        }.bind(this)).then( function (status) {
-                            return principal.consumeEmailVerificationCode(this.verifyEmailCode);
-                        }.bind(this)).then(function(){
-                            this.setLoggedInState(principal);
+                        if (principals.length == 0) {
+                            log(1, "Log In attempt for " + this.email + " failed (invalid email)");
+                            throw {code: "invalid_email_or_password",
+                                text: "Incorrect email or password"};
+                        }
+                        principal = principals[0];
+                        return principal.authenticate(this.password);
+                    }.bind(this)).then( function() {
+                        return Principal.getFromPersistWithId(principal._id);
+                    }.bind(this)).then( function(p) {
+                        principal = p;
+                        if (principal.mustChangePassword && !this.newPassword)
+                            throw {code: "changePassword", text: "Please change your password"};
+                        return principal.mustChangePassword ? this.changePasswordForPrincipal(principal) : Q(true);
+                    }.bind(this)).then( function (status) {
+                        return principal.consumeEmailVerificationCode(this.verifyEmailCode);
+                    }.bind(this)).then(function(){
+                        this.setLoggedInState(principal);
 
-                            principal.email = this.email;
-                            principal.newEmail = ""; // No need to track the changed email anymore
-                            principal.persistSave();
+                        principal.email = this.email;
+                        principal.newEmail = ""; // No need to track the changed email anymore
+                        principal.persistSave();
 
-                            // Send an email changed confirmation email
-                            this.sendEmail("confirm_emailchange", this.email, principal.email,
-                                principal.firstName + " " + principal.lastName, [
-                                    {name: "email", content: this.email},
-                                    {name: "firstName", content: principal.firstName}
-                                ]);
+                        // Send an email changed confirmation email
+                        this.sendEmail("confirm_emailchange", this.email, principal.email,
+                            principal.firstName + " " + principal.lastName, [
+                                {name: "email", content: this.email},
+                                {name: "firstName", content: principal.firstName}
+                            ]);
 
-                            return page ? this.setPage(page) : Q(true);
-                        }.bind(this))
+                        return page ? this.setPage(page) : Q(true);
+                    }.bind(this))
                 }},
 
             /**
@@ -720,18 +732,18 @@ module.exports.userman_mixins = function (objectTemplate, requires, moduleConfig
                     return principal.establishPassword(this.newPassword,
                         passwordExpiresMinutes ?
                             new Date((new Date()).getTime() + passwordExpiresMinutes * 1000 * 60) : null).then(function ()
-                        {
-                            log(1, "Changed password for " + principal.email);
-                            if (this.sendEMail)
-                                this.sendEmail("password_changed",
-                                    principal.email, principal.firstName,
-                                    [
-                                        {name: "firstName", content: principal.firstName}
-                                    ]);
+                    {
+                        log(1, "Changed password for " + principal.email);
+                        if (this.sendEMail)
+                            this.sendEmail("password_changed",
+                                principal.email, principal.firstName,
+                                [
+                                    {name: "firstName", content: principal.firstName}
+                                ]);
 
-                            return page ? this.setPage(page) : Q(true);
+                        return page ? this.setPage(page) : Q(true);
 
-                        }.bind(this))
+                    }.bind(this))
 
                 }.bind(this));
             },
@@ -745,7 +757,7 @@ module.exports.userman_mixins = function (objectTemplate, requires, moduleConfig
                 {
                     url = urlparser.parse(url, true);
                     log(1, "Request password reset for " + this.email);
-                    return Principal.getFromPersistWithQuery({email: this.email}).then(function (principals)
+                    return Principal.getFromPersistWithQuery({email: this.email}, null, null, null, true).then(function (principals)
                     {
                         if (principals.length < 1)
                             throw {code: "invalid_email", text:"Incorrect email"};
@@ -780,7 +792,7 @@ module.exports.userman_mixins = function (objectTemplate, requires, moduleConfig
                 {
                     var principal;
 
-                    return Principal.getFromPersistWithQuery({email:this.email}).then(function (principals)
+                    return Principal.getFromPersistWithQuery({email:this.email}, null, null, null, true).then(function (principals)
                     {
                         if (principals.length < 1)
                             throw {code: "ivalid_password_change_token",
@@ -789,8 +801,10 @@ module.exports.userman_mixins = function (objectTemplate, requires, moduleConfig
                         principal = principals[0];
                         return principal.consumePasswordChangeToken(this.passwordChangeHash, this.newPassword);
 
-                    }.bind(this)).then(function ()
-                    {
+                    }.bind(this)).then( function() {
+                        return Principal.getFromPersistWithId(principal._id);
+                    }.bind(this)).then( function(p) {
+                        principal = p;
                         return principal.establishPassword(this.newPassword)
 
                     }.bind(this)).then(function ()
@@ -802,13 +816,13 @@ module.exports.userman_mixins = function (objectTemplate, requires, moduleConfig
                 }},
 
             /**
-             * Verify the email code and log the user in
+             * Verify the email code
              */
             publicVerifyEmailFromCode: {on: "server", body: function(page)
             {
                 var principal;
 
-                return Principal.getFromPersistWithQuery({email:this.email}).then(function (principals)
+                return Principal.getFromPersistWithQuery({email:this.email}, null, null, null, true).then(function (principals)
                 {
                     if (principals.length < 1)
                         throw {code: "invalid_email_verification_code",
@@ -819,7 +833,6 @@ module.exports.userman_mixins = function (objectTemplate, requires, moduleConfig
 
                 }.bind(this)).then(function ()
                 {
-                    //this.setLoggedInState(principal)
                     return page ? this.setPage(page) : Q(true);
 
                 }.bind(this))

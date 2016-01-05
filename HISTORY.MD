@@ -1,3 +1,7 @@
+## 0.1.27
+- Support for knex
+## 0.1.25
+- Fixed information leak issue
 ## 0.1.24
 - Changes for admin users
 ## 0.1.23
