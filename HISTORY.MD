@@ -1,3 +1,5 @@
+## 0.1.28
+- lower case login
 ## 0.1.27
 - Support for knex
 ## 0.1.25

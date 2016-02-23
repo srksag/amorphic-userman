@@ -517,11 +517,7 @@ module.exports.userman_mixins = function (objectTemplate, requires, moduleConfig
                     if (this.loggedIn)
                         throw {code: "already_loggedin", text: "Already logged in"};
 
-                    var query = Principal.isKnex && Principal.isKnex() ?
-                        Principal.getFromPersistWithQuery(
-                            {email: this.email.toLowerCase()},
-                            null, null, null, true)
-                        : Principal.getFromPersistWithQuery(
+                    var query = Principal.getFromPersistWithQuery(
                         {email: { $regex: new RegExp("^" + this.email.toLowerCase().replace(/([^0-9a-zA-Z])/g, "\\$1") + '$', "i") }},
                         null, null, null, true);
                     return query.then(function (principals) {
