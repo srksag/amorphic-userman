@@ -23,7 +23,9 @@ In the config.json file you add a modules section like this:
                 "require": "amorphic-userman",
                 "controller": {"require": "controller", "template": "Controller"},
                 "principal": {"require" : "person", "template": "Person"},
-                "validateEmail": true
+                "validateEmail": true,
+                "filterProperty": channel,
+                "filterValue": "myApp"
             },
         }
     }
@@ -35,6 +37,8 @@ The properties are:
 template which is the template for the controller
 * principal has two properties, require, which is the require path for a a principal class and
 template which is the thempalte for the principal
+* filterProperty - optional property in principal used to segregate records
+* filterValue - optional property value used with filterProperty
 
 userman will add these properties to the principal template and manage them for you
 

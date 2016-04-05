@@ -1,3 +1,5 @@
+## 0.1.29
+- Added segragation by channel (filterProperty/filterValue) per application
 ## 0.1.28
 - lower case login
 ## 0.1.27
