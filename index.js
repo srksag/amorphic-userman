@@ -745,7 +745,7 @@ module.exports.userman_mixins = function (objectTemplate, requires, moduleConfig
               new Date((new Date()).getTime() + passwordExpiresMinutes * 1000 * 60) : null).then(function ()
           {
             log(1, "Changed password for " + principal.email);
-            if (this.sendEMail)
+            if (this.sendEmail)
               this.sendEmail("password_changed",
                 principal.email, principal.firstName,
                 [
