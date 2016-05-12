@@ -1,3 +1,5 @@
+## 1.0.0
+- Fixed typo that prevented password change messages from coming out
 ## 0.1.30
 - Added segragation by channel (filterProperty/filterValue) per application
 ## 0.1.28
