@@ -823,6 +823,13 @@ module.exports.userman_mixins = function (objectTemplate, requires, moduleConfig
             this.setLoggedInState(principal)
             return page ? this.setPage(page) : Q(true);
 
+          }.bind(this)).then(function () {
+            log(1, "Changed password for " + principal.email);
+            if (this.sendEmail){
+              this.sendEmail("password_changed", principal.email, principal.firstName, [
+                {name: "firstName", content: principal.firstName}
+              ]);
+            }
           }.bind(this))
         }},
 
