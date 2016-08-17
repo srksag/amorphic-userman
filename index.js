@@ -818,11 +818,17 @@ module.exports.userman_mixins = function (objectTemplate, requires, moduleConfig
             principal = p;
             return principal.establishPassword(this.newPassword)
 
-          }.bind(this)).then(function ()
-          {
+          }.bind(this)).then(function () {
             this.setLoggedInState(principal)
-            return page ? this.setPage(page) : Q(true);
 
+            log(1, "Changed password for " + principal.email);
+            if (this.sendEmail){
+              this.sendEmail("password_changed", principal.email, principal.firstName, [
+                {name: "firstName", content: principal.firstName}
+              ]);
+            }
+
+            return page ? this.setPage(page) : Q(true);
           }.bind(this))
         }},
 
