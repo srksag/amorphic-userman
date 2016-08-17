@@ -1,3 +1,5 @@
+## 1.0.1
+- Added sendmail call when password changed from token
 ## 1.0.0
 - Fixed typo that prevented password change messages from coming out
 ## 0.1.30
