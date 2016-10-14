@@ -1,3 +1,5 @@
+## 1.4.0
+- Made compatible with templateMode: auto
 ## 1.0.1
 - Added sendmail call when password changed from token
 ## 1.0.0
