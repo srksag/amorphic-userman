@@ -1,3 +1,5 @@
+## 1.4.1
+- Made compatible with templateMode: auto
 ## 1.4.0
 - Made compatible with templateMode: auto
 ## 1.0.1

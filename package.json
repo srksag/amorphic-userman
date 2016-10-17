@@ -2,7 +2,7 @@
     "name": "amorphic-userman",
     "description": "An amorphic module for basic identity management",
     "homepage": "https://github.com/selsamman/amorphic-userman",
-    "version": "1.4.0",
+    "version": "1.4.1",
     "dependencies": {
         "q": "1.x"
     },

@@ -322,7 +322,7 @@ module.exports.userman_mixins = function (objectTemplate, requires, moduleConfig
             });
     }
 
-    var Principal = requires[principals[0].require][principals[0].template];
+    var Principal = objectTemplate.__dictionary__[principals[0].template];
     var SecurityContext = objectTemplate.create("SecurityContext",
         {
             principal: {toServer: false, type: Principal},
