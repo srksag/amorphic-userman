@@ -1,3 +1,5 @@
+## 1.4.2
+- Don't allow duplicate register calls with only case differences
 ## 1.4.1
 - Made compatible with templateMode: auto
 ## 1.4.0
