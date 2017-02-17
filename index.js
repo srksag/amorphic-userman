@@ -226,6 +226,8 @@ module.exports.userman_mixins = function (objectTemplate, requires, moduleConfig
 
                     //this.validateEmailCode = false;
                     this.emailValidated = true;
+                    this.email  = this.newEmail;    // change login email after email verified by pin
+                    this.newEmail = '';             // clear new email
                     return this.persistSave();
                 },
 
