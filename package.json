@@ -4,12 +4,21 @@
     "homepage": "https://github.com/selsamman/amorphic-userman",
     "version": "1.4.2",
     "dependencies": {
-        "q": "1.x"
+        "amorphic": "https://github.com/selsamman/amorphic.git#593e949",
+        "q": "1.x",
+        "@types/q": "*",
+        "@types/node": "^7.0.5"
+    },
+    "devDependencies": {
+        "typescript": "^2.2.0"
     },
     "directories": {
     },
     "engines": {
         "node": ">=0.8.0"
+    },
+    "scripts": {
+        "compile:ts": "./node_modules/typescript/bin/tsc"
     },
     "repository": {
         "type": "git",
