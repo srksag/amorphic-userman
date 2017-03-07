@@ -116,12 +116,11 @@ export class AuthenticatedPrincipal extends Supertype  {
         user:               'User',             // A normal user
         defaultAdminRole:   'Administrator'    // An administrative user})
     }})
+    role:  string = 'user';
 
     @property({toServer: false})
     securityContext:  SecurityContext;
-    
-    role:  string = 'user';
-
+ 
     @remote()
     roleSet (role) {
         if (this.securityContext.role == defaultAdminRole.call(this))

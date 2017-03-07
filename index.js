@@ -389,6 +389,9 @@ __decorate([
             user: 'User',
             defaultAdminRole: 'Administrator' // An administrative user})
         } }),
+    __metadata("design:type", String)
+], AuthenticatedPrincipal.prototype, "role", void 0);
+__decorate([
     amorphic_1.property({ toServer: false }),
     __metadata("design:type", SecurityContext)
 ], AuthenticatedPrincipal.prototype, "securityContext", void 0);
