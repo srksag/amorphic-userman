@@ -74,6 +74,35 @@ function insertFilter(obj) {
         obj[filterProperty.call(this)] = filterValue.call(this);
     }
 }
+var SecurityContext = (function (_super) {
+    __extends(SecurityContext, _super);
+    function SecurityContext(principal, role) {
+        var _this = _super.call(this) || this;
+        _this.principal = principal;
+        _this.role = role;
+        return _this;
+    }
+    SecurityContext.prototype.isLoggedIn = function () {
+        return !!this.role;
+    };
+    SecurityContext.prototype.isAdmin = function () {
+        return this.isLoggedIn() && this.principal.role == defaultAdminRole.call(this);
+    };
+    return SecurityContext;
+}(amorphic_1.Supertype));
+__decorate([
+    amorphic_1.property({ toServer: false }),
+    __metadata("design:type", AuthenticatedPrincipal)
+], SecurityContext.prototype, "principal", void 0);
+__decorate([
+    amorphic_1.property({ toServer: false }),
+    __metadata("design:type", String)
+], SecurityContext.prototype, "role", void 0);
+SecurityContext = __decorate([
+    amorphic_1.supertypeClass,
+    __metadata("design:paramtypes", [Object, Object])
+], SecurityContext);
+exports.SecurityContext = SecurityContext;
 var AuthenticatedPrincipal = AuthenticatedPrincipal_1 = (function (_super) {
     __extends(AuthenticatedPrincipal, _super);
     function AuthenticatedPrincipal() {
@@ -365,7 +394,7 @@ __decorate([
     __metadata("design:type", Boolean)
 ], AuthenticatedPrincipal.prototype, "lockedOut", void 0);
 __decorate([
-    amorphic_1.property({ toServer: false, toClient: false }),
+    amorphic_1.property({ toServer: false, toClient: false, type: Date }),
     __metadata("design:type", Array)
 ], AuthenticatedPrincipal.prototype, "unsuccesfulLogins", void 0);
 __decorate([
@@ -377,11 +406,11 @@ __decorate([
     __metadata("design:type", Boolean)
 ], AuthenticatedPrincipal.prototype, "mustChangePassword", void 0);
 __decorate([
-    amorphic_1.property({ toServer: false, toClient: false }),
+    amorphic_1.property({ toServer: false, toClient: false, type: String }),
     __metadata("design:type", Array)
 ], AuthenticatedPrincipal.prototype, "previousSalts", void 0);
 __decorate([
-    amorphic_1.property({ toServer: false, toClient: false }),
+    amorphic_1.property({ toServer: false, toClient: false, type: String }),
     __metadata("design:type", Array)
 ], AuthenticatedPrincipal.prototype, "previousHashes", void 0);
 __decorate([
@@ -420,38 +449,9 @@ __decorate([
     __metadata("design:returntype", void 0)
 ], AuthenticatedPrincipal.prototype, "setRoleForUser", null);
 AuthenticatedPrincipal = AuthenticatedPrincipal_1 = __decorate([
-    amorphic_1.supertypeClass()
+    amorphic_1.supertypeClass
 ], AuthenticatedPrincipal);
 exports.AuthenticatedPrincipal = AuthenticatedPrincipal;
-var SecurityContext = (function (_super) {
-    __extends(SecurityContext, _super);
-    function SecurityContext(principal, role) {
-        var _this = _super.call(this) || this;
-        _this.principal = principal;
-        _this.role = role;
-        return _this;
-    }
-    SecurityContext.prototype.isLoggedIn = function () {
-        return !!this.role;
-    };
-    SecurityContext.prototype.isAdmin = function () {
-        return this.isLoggedIn() && this.principal.role == defaultAdminRole.call(this);
-    };
-    return SecurityContext;
-}(amorphic_1.Supertype));
-__decorate([
-    amorphic_1.property({ toServer: false }),
-    __metadata("design:type", AuthenticatedPrincipal)
-], SecurityContext.prototype, "principal", void 0);
-__decorate([
-    amorphic_1.property({ toServer: false }),
-    __metadata("design:type", String)
-], SecurityContext.prototype, "role", void 0);
-SecurityContext = __decorate([
-    amorphic_1.supertypeClass(),
-    __metadata("design:paramtypes", [Object, Object])
-], SecurityContext);
-exports.SecurityContext = SecurityContext;
 var AuthenticatingController = (function (_super) {
     __extends(AuthenticatingController, _super);
     function AuthenticatingController() {
@@ -970,7 +970,7 @@ __decorate([
     __metadata("design:returntype", void 0)
 ], AuthenticatingController.prototype, "privateVerifyEmailFromCode", null);
 AuthenticatingController = __decorate([
-    amorphic_1.supertypeClass()
+    amorphic_1.supertypeClass
 ], AuthenticatingController);
 exports.AuthenticatingController = AuthenticatingController;
 var AuthenticatedPrincipal_1;

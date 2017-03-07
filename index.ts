@@ -54,7 +54,30 @@ function insertFilter(obj) {
     }
 }
 
-@supertypeClass()
+@supertypeClass
+export class SecurityContext extends Supertype  {
+
+    @property({toServer: false})
+    principal: AuthenticatedPrincipal;
+
+    @property({toServer: false})
+    role: string;
+
+    constructor (principal, role) {
+        super();
+        this.principal = principal;
+        this.role = role;
+    }
+
+    isLoggedIn () {
+        return !!this.role;
+    }
+    isAdmin () {
+        return this.isLoggedIn() && this.principal.role == defaultAdminRole.call(this);
+    }
+}
+
+@supertypeClass
 export class AuthenticatedPrincipal extends Supertype  {
         // These secure elements are NEVER transmitted
 
@@ -97,7 +120,7 @@ export class AuthenticatedPrincipal extends Supertype  {
     @property({toServer: false})
     lockedOut: boolean = false;
 
-    @property({toServer: false, toClient: false})
+    @property({toServer: false, toClient: false, type: Date})
     unsuccesfulLogins: Array<Date> = [];
 
     @property({toServer: false})
@@ -106,10 +129,10 @@ export class AuthenticatedPrincipal extends Supertype  {
     @property({toServer: false})
     mustChangePassword: boolean = false;
 
-    @property({toServer: false, toClient: false})
+    @property({toServer: false, toClient: false, type: String})
     previousSalts: Array<string> = [];
 
-    @property({toServer: false, toClient: false})
+    @property({toServer: false, toClient: false, type: String})
     previousHashes: Array<String> = [];
 
     @property({toServer: false, values: {
@@ -120,7 +143,7 @@ export class AuthenticatedPrincipal extends Supertype  {
 
     @property({toServer: false})
     securityContext:  SecurityContext;
- 
+
     @remote()
     roleSet (role) {
         if (this.securityContext.role == defaultAdminRole.call(this))
@@ -370,30 +393,8 @@ export class AuthenticatedPrincipal extends Supertype  {
 
 }
 
-@supertypeClass()
-export class SecurityContext extends Supertype  {
 
-    @property({toServer: false})
-    principal: AuthenticatedPrincipal;
-
-    @property({toServer: false})
-    role: string;
-
-    constructor (principal, role) {
-        super();
-        this.principal = principal;
-        this.role = role;
-    }
-
-    isLoggedIn () {
-        return !!this.role;
-    }
-    isAdmin () {
-        return this.isLoggedIn() && this.principal.role == defaultAdminRole.call(this);
-    }
-}
-
-@supertypeClass()
+@supertypeClass
 export abstract class AuthenticatingController extends Supertype  {
 
     @property({length: 50, rule: ["name", "required"]})
