@@ -91,7 +91,7 @@ var SecurityContext = (function (_super) {
     return SecurityContext;
 }(amorphic_1.Supertype));
 __decorate([
-    amorphic_1.property({ toServer: false }),
+    amorphic_1.property({ toServer: false, getType: function () { return AuthenticatedPrincipal; } }),
     __metadata("design:type", AuthenticatedPrincipal)
 ], SecurityContext.prototype, "principal", void 0);
 __decorate([

@@ -57,7 +57,7 @@ function insertFilter(obj) {
 @supertypeClass
 export class SecurityContext extends Supertype  {
 
-    @property({toServer: false})
+    @property({toServer: false, getType: () => {return AuthenticatedPrincipal}})
     principal: AuthenticatedPrincipal;
 
     @property({toServer: false})
