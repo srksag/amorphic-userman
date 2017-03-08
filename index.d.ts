@@ -4,6 +4,7 @@ import { Supertype } from 'amorphic';
 export declare class SecurityContext extends Supertype {
     principal: AuthenticatedPrincipal;
     role: string;
+    defaultAdminRole: string;
     constructor(principal: any, role: any);
     isLoggedIn(): boolean;
     isAdmin(): boolean;

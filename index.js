@@ -80,13 +80,14 @@ var SecurityContext = (function (_super) {
         var _this = _super.call(this) || this;
         _this.principal = principal;
         _this.role = role;
+        _this.defaultAdminRole = defaultAdminRole.call(_this);
         return _this;
     }
     SecurityContext.prototype.isLoggedIn = function () {
         return !!this.role;
     };
     SecurityContext.prototype.isAdmin = function () {
-        return this.isLoggedIn() && this.principal.role == defaultAdminRole.call(this);
+        return this.isLoggedIn() && this.principal.role == this.defaultAdminRole;
     };
     return SecurityContext;
 }(amorphic_1.Supertype));
@@ -98,6 +99,10 @@ __decorate([
     amorphic_1.property({ toServer: false }),
     __metadata("design:type", String)
 ], SecurityContext.prototype, "role", void 0);
+__decorate([
+    amorphic_1.property({ toServer: false }),
+    __metadata("design:type", String)
+], SecurityContext.prototype, "defaultAdminRole", void 0);
 SecurityContext = __decorate([
     amorphic_1.supertypeClass,
     __metadata("design:paramtypes", [Object, Object])

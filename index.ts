@@ -63,17 +63,21 @@ export class SecurityContext extends Supertype  {
     @property({toServer: false})
     role: string;
 
+    @property({toServer: false})
+    defaultAdminRole: string;
+
     constructor (principal, role) {
         super();
         this.principal = principal;
         this.role = role;
+        this.defaultAdminRole = defaultAdminRole.call(this);
     }
 
     isLoggedIn () {
         return !!this.role;
     }
     isAdmin () {
-        return this.isLoggedIn() && this.principal.role == defaultAdminRole.call(this);
+        return this.isLoggedIn() && this.principal.role == this.defaultAdminRole;
     }
 }
 
