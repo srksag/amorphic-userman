@@ -6,10 +6,11 @@
     "types": "./index.d.ts",
     "main": "./index.js",
     "dependencies": {
-        "amorphic": "https://github.com/selsamman/amorphic.git#b40730bce452ac5a258d83b76ff4d11715183620",
+        "amorphic": "https://github.com/selsamman/amorphic.git#d80ac3090b7e7fbc2875b2da1e96b3bc8010e8df",
         "q": "1.x",
         "@types/q": "*",
-        "@types/node": "^7.0.5"
+        "@types/node": "^7.0.5",
+        "es6-promise": "*"
     },
     "devDependencies": {
         "typescript": "^2.2.0"

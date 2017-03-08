@@ -3,7 +3,7 @@ import * as _ from 'underscore';
 import * as crypto from 'crypto';
 import * as urlparser from 'url';
 import {Supertype, supertypeClass, property, remote} from 'amorphic';
-import * as objectTemplate from 'amorphic';
+import 'es6-promise';
 
 /*
  * SecurityContext can be retrieved using getSecurityContext on any object to
@@ -604,38 +604,120 @@ export abstract class AuthenticatingController extends Supertype  {
      * login the user
      */
     @remote({validate: function () {return this.validate(document.getElementById('publicLoginFields'))}})
-    publicLogin (page?, forceChange?) {
+    publicLoginBind (page?, forceChange?) {
         var principal;
         if (this.loggedIn)
             throw {code: "already_loggedin", text: "Already logged in"};
 
         var query = AuthenticatedPrincipal.getFromPersistWithQuery(
             queryFilter.call(this, {email: { $regex: new RegExp("^" + this.email.toLowerCase().replace(/([^0-9a-zA-Z])/g, "\\$1") + '$'), $options: 'i' }}),
-                null, null, null, true);
-            return query.then(function (principals) {
-                if (principals.length == 0 || principals[0].suspended) {
-                    log.call(this, "Log In attempt for " + this.email + " failed (invalid email)");
-                    throw {code: "invalid_email_or_password",
-                        text: "Incorrect email or password"};
-                }
-                principal = principals[0];
-                this.amorphicate(principal);
-                return principal.authenticate(this.password);
-            }.bind(this)).then( function() {
-                return AuthenticatedPrincipal.getFromPersistWithId(principal._id);
-            }.bind(this)).then( function(p) {
-                principal = p;
-                this.amorphicate(principal);
-                forceChange = forceChange || principal.mustChangePassword;
-                if (forceChange && !this.newPassword)
-                    throw {code: "changePassword", text: "Please change your password"};
-                return forceChange ? this.changePasswordForPrincipal(principal) : Q(true);
-            }.bind(this)).then( function (status) {
-                if (status)
-                    this.setLoggedInState(principal);
-                return page ? this.setPage(page) : Q(true);
-            }.bind(this))
+            null, null, null, true);
+        return query.then(function (principals) {
+            if (principals.length == 0 || principals[0].suspended) {
+                log.call(this, "Log In attempt for " + this.email + " failed (invalid email)");
+                throw {code: "invalid_email_or_password",
+                    text: "Incorrect email or password"};
+            }
+            principal = principals[0];
+            this.amorphicate(principal);
+            return principal.authenticate(this.password);
+        }.bind(this)).then( function() {
+            return AuthenticatedPrincipal.getFromPersistWithId(principal._id);
+        }.bind(this)).then( function(p) {
+            principal = p;
+            this.amorphicate(principal);
+            forceChange = forceChange || principal.mustChangePassword;
+            if (forceChange && !this.newPassword)
+                throw {code: "changePassword", text: "Please change your password"};
+            return forceChange ? this.changePasswordForPrincipal(principal) : Q(true);
+        }.bind(this)).then( function (status) {
+            if (status)
+                this.setLoggedInState(principal);
+            return page ? this.setPage(page) : Q(true);
+        }.bind(this))
     }
+
+    /**
+     * login the user
+     */
+    @remote({validate: function () {return this.validate(document.getElementById('publicLoginFields'))}})
+    publicLoginFatArrow (page?, forceChange?) {
+
+        var principal;
+
+        if (this.loggedIn)
+            throw {code: "already_loggedin", text: "Already logged in"};
+
+        var query = AuthenticatedPrincipal.getFromPersistWithQuery(
+            queryFilter.call(this,
+                {email: { $regex: new RegExp("^" + this.email.toLowerCase().replace(/([^0-9a-zA-Z])/g, "\\$1") + '$'), $options: 'i' }}),
+                null, null, null, true);
+
+        return query.then( (principals) => {
+            if (principals.length == 0 || principals[0].suspended) {
+                log.call(this, "Log In attempt for " + this.email + " failed (invalid email)");
+                throw {code: "invalid_email_or_password",
+                    text: "Incorrect email or password"};
+            }
+            principal = principals[0];
+            this.amorphicate(principal);
+            return principal.authenticate(this.password);
+        }).then(() => {
+            return AuthenticatedPrincipal.getFromPersistWithId(principal._id);
+        }).then((p) => {
+            principal = p;
+            this.amorphicate(principal);
+            forceChange = forceChange || principal.mustChangePassword;
+            if (forceChange && !this.newPassword)
+                throw {code: "changePassword", text: "Please change your password"};
+            return forceChange ? this.changePasswordForPrincipal(principal) : true;
+        }).then( (status) => {
+            if (status)
+                this.setLoggedInState(principal);
+            return page ? this.setPage(page) : Q(true);
+        });
+    }
+
+    /**
+     * login the user
+     */
+    @remote({validate: function () {return this.validate(document.getElementById('publicLoginFields'))}})
+    async publicLogin (page?, forceChange?) {
+
+        if (this.loggedIn)
+            throw {code: "already_loggedin", text: "Already logged in"};
+
+        var query = AuthenticatedPrincipal.getFromPersistWithQuery(
+            queryFilter.call(this,
+                {email: { $regex: new RegExp("^" + this.email.toLowerCase().replace(/([^0-9a-zA-Z])/g, "\\$1") + '$'),
+                    $options: 'i' }}), null, null, null, true);
+
+        var principals = await query;
+        if (principals.length == 0 || principals[0].suspended) {
+            log.call(this, "Log In attempt for " + this.email + " failed (invalid email)");
+            throw {code: "invalid_email_or_password",
+                text: "Incorrect email or password"};
+        }
+        var principal = principals[0];
+        this.amorphicate(principal);
+
+        await principal.authenticate(this.password);
+
+        var principal = await AuthenticatedPrincipal.getFromPersistWithId(principal._id);
+        this.amorphicate(principal);
+
+        forceChange = forceChange || principal.mustChangePassword;
+        if (forceChange && !this.newPassword)
+            throw {code: "changePassword", text: "Please change your password"};
+
+        var status = forceChange ?  await this.changePasswordForPrincipal(principal) : true;
+        if (status)
+            this.setLoggedInState(principal);
+
+        if (page)
+            await this.setPage(page);
+    }
+
 
     /**
      * login the user with changed email. Also verify email code
@@ -713,22 +795,30 @@ export abstract class AuthenticatingController extends Supertype  {
      * logout the current user
      */
     @remote()
-    publicLogout ()
+    publicLogout (page)
     {
         log.call(this, "Customer " + this.email + " logged out");
         this.setLoggedOutState();
+        return page? this.setPage(page) : null;
+    }
+
+    @remote({on: 'client'})
+    setPage (page) {
+        // should be overriddent if you want to go to a page
     }
 
     /**
      * change an email address for a logged in user
      */
     @remote({validate: function () {return this.validate(document.getElementById('changeEmailFields'))}})
-    changeEmail (page, url)
+    async changeEmail (page, url)
     {
         url = urlparser.parse(url, true);
         var principal = this.getPrincipal();
         var oldEmail = principal.email;
         var newEmail = this.newEmail;
+
+
 
         return Q(true).then(function () {
             return principal.authenticate(this.password, null, true);

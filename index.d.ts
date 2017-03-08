@@ -1,6 +1,7 @@
 /// <reference types="q" />
 import * as Q from 'q';
 import { Supertype } from 'amorphic';
+import 'es6-promise';
 export declare class SecurityContext extends Supertype {
     principal: AuthenticatedPrincipal;
     role: string;
@@ -122,7 +123,15 @@ export declare abstract class AuthenticatingController extends Supertype {
     /**
      * login the user
      */
-    publicLogin(page?: any, forceChange?: any): any;
+    publicLoginBind(page?: any, forceChange?: any): any;
+    /**
+     * login the user
+     */
+    publicLoginFatArrow(page?: any, forceChange?: any): any;
+    /**
+     * login the user
+     */
+    publicLogin(page?: any, forceChange?: any): Promise<void>;
     /**
      * login the user with changed email. Also verify email code
      */
@@ -135,11 +144,12 @@ export declare abstract class AuthenticatingController extends Supertype {
      *  Set up all fields to indicate logged out
      */
     setLoggedOutState(): void;
-    publicLogout(): void;
+    publicLogout(page: any): void;
+    setPage(page: any): void;
     /**
      * change an email address for a logged in user
      */
-    changeEmail(page: any, url: any): Q.Promise<{}>;
+    changeEmail(page: any, url: any): Promise<{}>;
     abstract sendEmail(slug: any, email: any, name: any, emails: Array<any>): any;
     resendChangeEmailValidationCode(url: any): void;
     /**

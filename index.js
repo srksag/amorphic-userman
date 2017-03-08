@@ -18,12 +18,48 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
 var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : new P(function (resolve) { resolve(result.value); }).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
+var __generator = (this && this.__generator) || function (thisArg, body) {
+    var _ = { label: 0, sent: function() { if (t[0] & 1) throw t[1]; return t[1]; }, trys: [], ops: [] }, f, y, t;
+    return { next: verb(0), "throw": verb(1), "return": verb(2) };
+    function verb(n) { return function (v) { return step([n, v]); }; }
+    function step(op) {
+        if (f) throw new TypeError("Generator is already executing.");
+        while (_) try {
+            if (f = 1, y && (t = y[op[0] & 2 ? "return" : op[0] ? "throw" : "next"]) && !(t = t.call(y, op[1])).done) return t;
+            if (y = 0, t) op = [0, t.value];
+            switch (op[0]) {
+                case 0: case 1: t = op; break;
+                case 4: _.label++; return { value: op[1], done: false };
+                case 5: _.label++; y = op[1]; op = [0]; continue;
+                case 7: op = _.ops.pop(); _.trys.pop(); continue;
+                default:
+                    if (!(t = _.trys, t = t.length > 0 && t[t.length - 1]) && (op[0] === 6 || op[0] === 2)) { _ = 0; continue; }
+                    if (op[0] === 3 && (!t || (op[1] > t[0] && op[1] < t[3]))) { _.label = op[1]; break; }
+                    if (op[0] === 6 && _.label < t[1]) { _.label = t[1]; t = op; break; }
+                    if (t && _.label < t[2]) { _.label = t[2]; _.ops.push(op); break; }
+                    if (t[2]) _.ops.pop();
+                    _.trys.pop(); continue;
+            }
+            op = body.call(thisArg, _);
+        } catch (e) { op = [6, e]; y = 0; } finally { f = t = 0; }
+        if (op[0] & 5) throw op[1]; return { value: op[0] ? op[1] : void 0, done: true };
+    }
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 var Q = require("q");
 var _ = require("underscore");
 var crypto = require("crypto");
 var urlparser = require("url");
 var amorphic_1 = require("amorphic");
+require("es6-promise");
 /*
  * SecurityContext can be retrieved using getSecurityContext on any object to
  * find out who is logged in and what there roll is
@@ -603,7 +639,7 @@ var AuthenticatingController = (function (_super) {
     /**
      * login the user
      */
-    AuthenticatingController.prototype.publicLogin = function (page, forceChange) {
+    AuthenticatingController.prototype.publicLoginBind = function (page, forceChange) {
         var principal;
         if (this.loggedIn)
             throw { code: "already_loggedin", text: "Already logged in" };
@@ -631,6 +667,94 @@ var AuthenticatingController = (function (_super) {
                 this.setLoggedInState(principal);
             return page ? this.setPage(page) : Q(true);
         }.bind(this));
+    };
+    /**
+     * login the user
+     */
+    AuthenticatingController.prototype.publicLoginFatArrow = function (page, forceChange) {
+        var _this = this;
+        var principal;
+        if (this.loggedIn)
+            throw { code: "already_loggedin", text: "Already logged in" };
+        var query = AuthenticatedPrincipal.getFromPersistWithQuery(queryFilter.call(this, { email: { $regex: new RegExp("^" + this.email.toLowerCase().replace(/([^0-9a-zA-Z])/g, "\\$1") + '$'), $options: 'i' } }), null, null, null, true);
+        return query.then(function (principals) {
+            if (principals.length == 0 || principals[0].suspended) {
+                log.call(_this, "Log In attempt for " + _this.email + " failed (invalid email)");
+                throw { code: "invalid_email_or_password",
+                    text: "Incorrect email or password" };
+            }
+            principal = principals[0];
+            _this.amorphicate(principal);
+            return principal.authenticate(_this.password);
+        }).then(function () {
+            return AuthenticatedPrincipal.getFromPersistWithId(principal._id);
+        }).then(function (p) {
+            principal = p;
+            _this.amorphicate(principal);
+            forceChange = forceChange || principal.mustChangePassword;
+            if (forceChange && !_this.newPassword)
+                throw { code: "changePassword", text: "Please change your password" };
+            return forceChange ? _this.changePasswordForPrincipal(principal) : true;
+        }).then(function (status) {
+            if (status)
+                _this.setLoggedInState(principal);
+            return page ? _this.setPage(page) : Q(true);
+        });
+    };
+    /**
+     * login the user
+     */
+    AuthenticatingController.prototype.publicLogin = function (page, forceChange) {
+        return __awaiter(this, void 0, void 0, function () {
+            var query, principals, principal, principal, status, _a;
+            return __generator(this, function (_b) {
+                switch (_b.label) {
+                    case 0:
+                        if (this.loggedIn)
+                            throw { code: "already_loggedin", text: "Already logged in" };
+                        query = AuthenticatedPrincipal.getFromPersistWithQuery(queryFilter.call(this, { email: { $regex: new RegExp("^" + this.email.toLowerCase().replace(/([^0-9a-zA-Z])/g, "\\$1") + '$'),
+                                $options: 'i' } }), null, null, null, true);
+                        return [4 /*yield*/, query];
+                    case 1:
+                        principals = _b.sent();
+                        if (principals.length == 0 || principals[0].suspended) {
+                            log.call(this, "Log In attempt for " + this.email + " failed (invalid email)");
+                            throw { code: "invalid_email_or_password",
+                                text: "Incorrect email or password" };
+                        }
+                        principal = principals[0];
+                        this.amorphicate(principal);
+                        return [4 /*yield*/, principal.authenticate(this.password)];
+                    case 2:
+                        _b.sent();
+                        return [4 /*yield*/, AuthenticatedPrincipal.getFromPersistWithId(principal._id)];
+                    case 3:
+                        principal = _b.sent();
+                        this.amorphicate(principal);
+                        forceChange = forceChange || principal.mustChangePassword;
+                        if (forceChange && !this.newPassword)
+                            throw { code: "changePassword", text: "Please change your password" };
+                        if (!forceChange) return [3 /*break*/, 5];
+                        return [4 /*yield*/, this.changePasswordForPrincipal(principal)];
+                    case 4:
+                        _a = _b.sent();
+                        return [3 /*break*/, 6];
+                    case 5:
+                        _a = true;
+                        _b.label = 6;
+                    case 6:
+                        status = _a;
+                        if (status)
+                            this.setLoggedInState(principal);
+                        if (!page) return [3 /*break*/, 8];
+                        return [4 /*yield*/, this.setPage(page)];
+                    case 7:
+                        _b.sent();
+                        _b.label = 8;
+                    case 8: return [2 /*return*/];
+                }
+            });
+        });
     };
     /**
      * login the user with changed email. Also verify email code
@@ -691,57 +815,66 @@ var AuthenticatingController = (function (_super) {
     /*
      * logout the current user
      */
-    AuthenticatingController.prototype.publicLogout = function () {
+    AuthenticatingController.prototype.publicLogout = function (page) {
         log.call(this, "Customer " + this.email + " logged out");
         this.setLoggedOutState();
+        return page ? this.setPage(page) : null;
+    };
+    AuthenticatingController.prototype.setPage = function (page) {
+        // should be overriddent if you want to go to a page
     };
     /**
      * change an email address for a logged in user
      */
     AuthenticatingController.prototype.changeEmail = function (page, url) {
-        url = urlparser.parse(url, true);
-        var principal = this.getPrincipal();
-        var oldEmail = principal.email;
-        var newEmail = this.newEmail;
-        return Q(true).then(function () {
-            return principal.authenticate(this.password, null, true);
-        }.bind(this)).then(function () {
-            return AuthenticatedPrincipal.countFromPersistWithQuery(queryFilter.call(this, { email: newEmail }));
-        }.bind(this)).then(function (count) {
-            if (count > 0)
-                throw { code: "email_registered", text: "This email already registered" };
-        }.bind(this)).then(function () {
-            if (validateEmail.call(this))
-                return principal.setEmailVerificationCode();
-            else {
-                return Q(false);
-            }
-        }.bind(this)).then(function () {
-            if (!deferEmailChange.call(this))
-                this.email = newEmail;
-            principal.newEmail = newEmail;
-            principal.persistSave();
-            // Send an email to old email address which is purely informational
-            this.sendEmail("email_changed", oldEmail, principal.email, principal.firstName + " " + principal.lastName, [
-                { name: "oldEmail", content: oldEmail },
-                { name: "email", content: newEmail },
-                { name: "firstName", content: principal.firstName }
-            ]);
-            // Send an email to new email address asking to verify the new email
-            // address
-            this.sendEmail(validateEmail.call(this) ? "email_changed_verify" : "email_changed", newEmail, principal.firstName + " " + principal.lastName, [
-                { name: "oldEmail", content: oldEmail },
-                { name: "email", content: newEmail },
-                { name: "firstName", content: principal.firstName },
-                { name: "link", content: url.protocol + "//" + url.host.replace(/:.*/, '') +
-                        (url.port > 1000 ? ':' + url.port : '') +
-                        "?email=" + encodeURIComponent(newEmail) +
-                        "&code=" + principal.validateEmailCode + (deferEmailChange.call(this) ? "#verify_email_change" : "#verify_email") },
-                { name: "verificationCode", content: principal.validateEmailCode }
-            ]);
-            log.call(this, "Changed email " + oldEmail + " to " + newEmail);
-            return page ? this.setPage(page) : Q(true);
-        }.bind(this));
+        return __awaiter(this, void 0, void 0, function () {
+            var principal, oldEmail, newEmail;
+            return __generator(this, function (_a) {
+                url = urlparser.parse(url, true);
+                principal = this.getPrincipal();
+                oldEmail = principal.email;
+                newEmail = this.newEmail;
+                return [2 /*return*/, Q(true).then(function () {
+                        return principal.authenticate(this.password, null, true);
+                    }.bind(this)).then(function () {
+                        return AuthenticatedPrincipal.countFromPersistWithQuery(queryFilter.call(this, { email: newEmail }));
+                    }.bind(this)).then(function (count) {
+                        if (count > 0)
+                            throw { code: "email_registered", text: "This email already registered" };
+                    }.bind(this)).then(function () {
+                        if (validateEmail.call(this))
+                            return principal.setEmailVerificationCode();
+                        else {
+                            return Q(false);
+                        }
+                    }.bind(this)).then(function () {
+                        if (!deferEmailChange.call(this))
+                            this.email = newEmail;
+                        principal.newEmail = newEmail;
+                        principal.persistSave();
+                        // Send an email to old email address which is purely informational
+                        this.sendEmail("email_changed", oldEmail, principal.email, principal.firstName + " " + principal.lastName, [
+                            { name: "oldEmail", content: oldEmail },
+                            { name: "email", content: newEmail },
+                            { name: "firstName", content: principal.firstName }
+                        ]);
+                        // Send an email to new email address asking to verify the new email
+                        // address
+                        this.sendEmail(validateEmail.call(this) ? "email_changed_verify" : "email_changed", newEmail, principal.firstName + " " + principal.lastName, [
+                            { name: "oldEmail", content: oldEmail },
+                            { name: "email", content: newEmail },
+                            { name: "firstName", content: principal.firstName },
+                            { name: "link", content: url.protocol + "//" + url.host.replace(/:.*/, '') +
+                                    (url.port > 1000 ? ':' + url.port : '') +
+                                    "?email=" + encodeURIComponent(newEmail) +
+                                    "&code=" + principal.validateEmailCode + (deferEmailChange.call(this) ? "#verify_email_change" : "#verify_email") },
+                            { name: "verificationCode", content: principal.validateEmailCode }
+                        ]);
+                        log.call(this, "Changed email " + oldEmail + " to " + newEmail);
+                        return page ? this.setPage(page) : Q(true);
+                    }.bind(this))];
+            });
+        });
     };
     AuthenticatingController.prototype.resendChangeEmailValidationCode = function (url) {
         url = urlparser.parse(url, true);
@@ -929,6 +1062,18 @@ __decorate([
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [Object, Object]),
     __metadata("design:returntype", void 0)
+], AuthenticatingController.prototype, "publicLoginBind", null);
+__decorate([
+    amorphic_1.remote({ validate: function () { return this.validate(document.getElementById('publicLoginFields')); } }),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, Object]),
+    __metadata("design:returntype", void 0)
+], AuthenticatingController.prototype, "publicLoginFatArrow", null);
+__decorate([
+    amorphic_1.remote({ validate: function () { return this.validate(document.getElementById('publicLoginFields')); } }),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, Object]),
+    __metadata("design:returntype", Promise)
 ], AuthenticatingController.prototype, "publicLogin", null);
 __decorate([
     amorphic_1.remote({ validate: function () { return this.validate(document.getElementById('publicLoginFields')); } }),
@@ -939,14 +1084,20 @@ __decorate([
 __decorate([
     amorphic_1.remote(),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", []),
+    __metadata("design:paramtypes", [Object]),
     __metadata("design:returntype", void 0)
 ], AuthenticatingController.prototype, "publicLogout", null);
+__decorate([
+    amorphic_1.remote({ on: 'client' }),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object]),
+    __metadata("design:returntype", void 0)
+], AuthenticatingController.prototype, "setPage", null);
 __decorate([
     amorphic_1.remote({ validate: function () { return this.validate(document.getElementById('changeEmailFields')); } }),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [Object, Object]),
-    __metadata("design:returntype", void 0)
+    __metadata("design:returntype", Promise)
 ], AuthenticatingController.prototype, "changeEmail", null);
 __decorate([
     amorphic_1.remote({ validate: function () { return this.validate(document.getElementById('changeEmailFields')); } }),
