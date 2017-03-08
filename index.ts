@@ -1,7 +1,7 @@
 import * as Q from 'q';
 import * as _ from 'underscore';
-import crypto = require('crypto');
-import urlparser = require('url');
+import * as crypto from 'crypto';
+import * as urlparser from 'url';
 import {Supertype, supertypeClass, property, remote} from 'amorphic';
 import * as objectTemplate from 'amorphic';
 
