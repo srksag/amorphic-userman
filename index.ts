@@ -70,7 +70,7 @@ export class SecurityContext extends Supertype  {
         super();
         this.principal = principal;
         this.role = role;
-        this.defaultAdminRole = defaultAdminRole.call(this);
+        this.defaultAdminRole = defaultAdminRole.call(principal);
     }
 
     isLoggedIn () {

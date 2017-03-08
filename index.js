@@ -80,7 +80,7 @@ var SecurityContext = (function (_super) {
         var _this = _super.call(this) || this;
         _this.principal = principal;
         _this.role = role;
-        _this.defaultAdminRole = defaultAdminRole.call(_this);
+        _this.defaultAdminRole = defaultAdminRole.call(principal);
         return _this;
     }
     SecurityContext.prototype.isLoggedIn = function () {
