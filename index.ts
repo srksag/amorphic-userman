@@ -68,6 +68,8 @@ export class SecurityContext extends Supertype  {
 
     constructor (principal, role) {
         super();
+        if (this.__empty__)
+            return;
         this.principal = principal;
         this.role = role;
         this.defaultAdminRole = defaultAdminRole.call(principal);

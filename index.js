@@ -78,6 +78,8 @@ var SecurityContext = (function (_super) {
     __extends(SecurityContext, _super);
     function SecurityContext(principal, role) {
         var _this = _super.call(this) || this;
+        if (_this.__empty__)
+            return _this;
         _this.principal = principal;
         _this.role = role;
         _this.defaultAdminRole = defaultAdminRole.call(principal);
