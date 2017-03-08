@@ -475,7 +475,7 @@ export abstract class AuthenticatingController extends Supertype  {
      */
     @remote({validate: function(){return this.validate(document.getElementById('publicRegisterFields'))}})
 
-    createNewAdmin (adminUser, url, pageConfirmation, pageInstructions, reset) {
+    createNewAdmin (adminUser, url, pageConfirmation?, pageInstructions?, reset?) {
 
         // Check for security context of security admin
         if(this.loggedInRole !== defaultRole.call(this)){
@@ -546,7 +546,7 @@ export abstract class AuthenticatingController extends Supertype  {
     @remote({validate: function () {
         return this.validate(document.getElementById('publicRegisterFields'));
     }})
-    publicRegister (url, pageConfirmation, pageInstructions) {
+    publicRegister (url, pageConfirmation?, pageInstructions?) {
         if (this.newPassword != this.confirmPassword)
             throw {code: 'passwordmismatch', text: "Password's are not the same"};
 
@@ -600,7 +600,7 @@ export abstract class AuthenticatingController extends Supertype  {
      * login the user
      */
     @remote({validate: function () {return this.validate(document.getElementById('publicLoginFields'))}})
-    publicLogin (page, forceChange) {
+    publicLogin (page?, forceChange?) {
         var principal;
         if (this.loggedIn)
             throw {code: "already_loggedin", text: "Already logged in"};
@@ -637,7 +637,7 @@ export abstract class AuthenticatingController extends Supertype  {
      * login the user with changed email. Also verify email code
      */
     @remote({validate: function () {return this.validate(document.getElementById('publicLoginFields'))}})
-    publicLoginWithNewEmail (page)
+    publicLoginWithNewEmail (page?)
     {
         var principal;
 
@@ -805,7 +805,7 @@ export abstract class AuthenticatingController extends Supertype  {
         return this.changePasswordForPrincipal(this.getPrincipal(), page);
     }
 
-    changePasswordForPrincipal(principal, page) 
+    changePasswordForPrincipal(principal, page?)
     {
         return principal.authenticate(this.password, true).then(function()
         {
@@ -905,7 +905,7 @@ export abstract class AuthenticatingController extends Supertype  {
      * Verify the email code
      */
     @remote()
-    publicVerifyEmailFromCode (page)
+    publicVerifyEmailFromCode (page?)
     {
         var principal;
 
