@@ -157,9 +157,6 @@ var AuthenticatedPrincipal = AuthenticatedPrincipal_1 = (function (_super) {
         this.roleSet(role);
         return this.persistSave();
     };
-    AuthenticatedPrincipal.prototype.isAdmin = function () {
-        return this.role == defaultAdminRole.call(this);
-    };
     /**
      * Create a password hash and save the object
      *
@@ -475,7 +472,7 @@ var AuthenticatingController = (function (_super) {
         return _this;
     }
     AuthenticatingController.prototype.isAdmin = function () {
-        return this.loggedIn && this.loggedInRole == defaultAdminRole.call(this);
+        return this.securityContext.isAdmin();
     };
     AuthenticatingController.prototype.isLoggedIn = function () {
         return !!this.loggedIn;

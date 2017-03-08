@@ -188,10 +188,6 @@ export class AuthenticatedPrincipal extends Supertype  {
         return this.persistSave();
     }
 
-    isAdmin () {
-        return this.role == defaultAdminRole.call(this);
-    }
-
     /**
      * Create a password hash and save the object
      *
@@ -440,9 +436,11 @@ export abstract class AuthenticatingController extends Supertype  {
     @property({toServer: false})
     loggedInRole: string;
 
+
     isAdmin () {
-        return this.loggedIn && this.loggedInRole == defaultAdminRole.call(this);
+        return this.securityContext.isAdmin()
     }
+
 
     @property({toServer: false})
     securityContext:  SecurityContext;

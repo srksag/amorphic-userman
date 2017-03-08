@@ -34,7 +34,6 @@ export declare class AuthenticatedPrincipal extends Supertype {
     suspendUser(suspended: any): any;
     changeEmail(email: any): any;
     setRoleForUser(role: any): any;
-    isAdmin(): boolean;
     /**
      * Create a password hash and save the object
      *
