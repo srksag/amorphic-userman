@@ -79,7 +79,8 @@ export class SecurityContext extends Supertype  {
 
 @supertypeClass
 export class AuthenticatedPrincipal extends Supertype  {
-        // These secure elements are NEVER transmitted
+
+   // These secure elements are NEVER transmitted
 
     @property({toServer: false})
     email: string = '';
@@ -92,24 +93,6 @@ export class AuthenticatedPrincipal extends Supertype  {
 
     @property({toServer: false})
     lastName: string = '';
-
-    @property({toClient: false, toServer: false})
-    passwordHash: string;
-
-    @property({toClient: false, toServer: false})
-    passwordSalt: string;
-
-    @property({toClient: false, toServer: false})
-    passwordChangeHash: string = '';
-
-    @property({toClient: false, toServer: false})
-    passwordChangeSalt: string = '';
-
-    @property({toClient: false, toServer: false})
-    passwordChangeExpires: Date;
-
-    @property({toClient: false, toServer: false})
-    validateEmailCode: string;
 
     @property({toServer: false})
     emailValidated: boolean = false;
@@ -143,6 +126,26 @@ export class AuthenticatedPrincipal extends Supertype  {
 
     @property({toServer: false})
     securityContext:  SecurityContext;
+
+    // These are never received.  You can mess with your passwork assuming you are logged in but never see it
+
+    @property({toClient: false, toServer: false})
+    passwordHash: string;
+
+    @property({toClient: false, toServer: false})
+    passwordSalt: string;
+
+    @property({toClient: false, toServer: false})
+    passwordChangeHash: string = '';
+
+    @property({toClient: false, toServer: false})
+    passwordChangeSalt: string = '';
+
+    @property({toClient: false, toServer: false})
+    passwordChangeExpires: Date;
+
+    @property({toClient: false, toServer: false})
+    validateEmailCode: string;
 
     @remote()
     roleSet (role) {
@@ -455,10 +458,11 @@ export abstract class AuthenticatingController extends Supertype  {
                 admin.firstName = "Admin";
                 admin.lastName = "User";
                 admin.role = defaultAdminRole.call(this);
+                this.amorphicate(admin);
                 return admin.establishPassword(defaultPassword.call(this) || "admin", null, true, true);
             } else
                 return Q(false);
-        });
+        }.bind(this));
     }
 
     /**
@@ -494,6 +498,7 @@ export abstract class AuthenticatingController extends Supertype  {
                     throw {code: "email_registered", text:"This email is already registered"};
                 principal = new AuthenticatedPrincipal();
             }
+            this.amorphicate(principal);
 
             // this[principalProperty] = this[principalProperty] || new Principal();
             principal.lockedOut = false;
@@ -557,6 +562,7 @@ export abstract class AuthenticatingController extends Supertype  {
 
             this.setPrincipal(this.getPrincipal() || new AuthenticatedPrincipal());
             principal = this.getPrincipal();
+            this.amorphicate(principal);
             principal.email = this.email;
             principal.firstName = this.firstName;
             principal.lastName = this.lastName;
@@ -609,11 +615,13 @@ export abstract class AuthenticatingController extends Supertype  {
                         text: "Incorrect email or password"};
                 }
                 principal = principals[0];
+                this.amorphicate(principal);
                 return principal.authenticate(this.password);
             }.bind(this)).then( function() {
                 return AuthenticatedPrincipal.getFromPersistWithId(principal._id);
             }.bind(this)).then( function(p) {
                 principal = p;
+                this.amorphicate(principal);
                 forceChange = forceChange || principal.mustChangePassword;
                 if (forceChange && !this.newPassword)
                     throw {code: "changePassword", text: "Please change your password"};
@@ -643,11 +651,13 @@ export abstract class AuthenticatingController extends Supertype  {
                     text: "Incorrect email or password"};
             }
             principal = principals[0];
+            this.amorphicate(principal);
             return principal.authenticate(this.password);
         }.bind(this)).then( function() {
             return AuthenticatedPrincipal.getFromPersistWithId(principal._id);
         }.bind(this)).then( function(p) {
             principal = p;
+            this.amorphicate(principal);
             if (principal.mustChangePassword && !this.newPassword)
                 throw {code: "changePassword", text: "Please change your password"};
             return principal.mustChangePassword ? this.changePasswordForPrincipal(principal) : Q(true);
@@ -831,6 +841,7 @@ export abstract class AuthenticatingController extends Supertype  {
             if (principals.length < 1)
                 throw {code: "invalid_email", text:"Incorrect email"};
             var principal = principals[0];
+            this.amorphicate(principal);
 
             return principal.setPasswordChangeHash().then (function (token)
             {
@@ -866,12 +877,14 @@ export abstract class AuthenticatingController extends Supertype  {
                     text: "Invalid password change link - make sure you copied correctly from the email"};
 
             principal = principals[0];
+            this.amorphicate(principal);
             return principal.consumePasswordChangeToken(this.passwordChangeHash, this.newPassword);
 
         }.bind(this)).then( function() {
             return AuthenticatedPrincipal.getFromPersistWithId(principal._id);
         }.bind(this)).then( function(p) {
             principal = p;
+            this.amorphicate(principal);
             return principal.establishPassword(this.newPassword)
 
         }.bind(this)).then(function () {
@@ -903,6 +916,7 @@ export abstract class AuthenticatingController extends Supertype  {
                     text: "Invalid verification link - make sure you copied correctly from the email"};
 
             principal = principals[0];
+            this.amorphicate(principal);
             return principal.consumeEmailVerificationCode(this.verifyEmailCode);
 
         }.bind(this)).then(function ()

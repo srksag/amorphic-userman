@@ -112,8 +112,6 @@ var AuthenticatedPrincipal = AuthenticatedPrincipal_1 = (function (_super) {
         _this.newEmail = '';
         _this.firstName = '';
         _this.lastName = '';
-        _this.passwordChangeHash = '';
-        _this.passwordChangeSalt = '';
         _this.emailValidated = false;
         _this.suspended = false;
         _this.lockedOut = false;
@@ -122,6 +120,8 @@ var AuthenticatedPrincipal = AuthenticatedPrincipal_1 = (function (_super) {
         _this.previousSalts = [];
         _this.previousHashes = [];
         _this.role = 'user';
+        _this.passwordChangeHash = '';
+        _this.passwordChangeSalt = '';
         return _this;
     }
     AuthenticatedPrincipal.prototype.roleSet = function (role) {
@@ -358,30 +358,6 @@ __decorate([
     __metadata("design:type", String)
 ], AuthenticatedPrincipal.prototype, "lastName", void 0);
 __decorate([
-    amorphic_1.property({ toClient: false, toServer: false }),
-    __metadata("design:type", String)
-], AuthenticatedPrincipal.prototype, "passwordHash", void 0);
-__decorate([
-    amorphic_1.property({ toClient: false, toServer: false }),
-    __metadata("design:type", String)
-], AuthenticatedPrincipal.prototype, "passwordSalt", void 0);
-__decorate([
-    amorphic_1.property({ toClient: false, toServer: false }),
-    __metadata("design:type", String)
-], AuthenticatedPrincipal.prototype, "passwordChangeHash", void 0);
-__decorate([
-    amorphic_1.property({ toClient: false, toServer: false }),
-    __metadata("design:type", String)
-], AuthenticatedPrincipal.prototype, "passwordChangeSalt", void 0);
-__decorate([
-    amorphic_1.property({ toClient: false, toServer: false }),
-    __metadata("design:type", Date)
-], AuthenticatedPrincipal.prototype, "passwordChangeExpires", void 0);
-__decorate([
-    amorphic_1.property({ toClient: false, toServer: false }),
-    __metadata("design:type", String)
-], AuthenticatedPrincipal.prototype, "validateEmailCode", void 0);
-__decorate([
     amorphic_1.property({ toServer: false }),
     __metadata("design:type", Boolean)
 ], AuthenticatedPrincipal.prototype, "emailValidated", void 0);
@@ -424,6 +400,30 @@ __decorate([
     amorphic_1.property({ toServer: false }),
     __metadata("design:type", SecurityContext)
 ], AuthenticatedPrincipal.prototype, "securityContext", void 0);
+__decorate([
+    amorphic_1.property({ toClient: false, toServer: false }),
+    __metadata("design:type", String)
+], AuthenticatedPrincipal.prototype, "passwordHash", void 0);
+__decorate([
+    amorphic_1.property({ toClient: false, toServer: false }),
+    __metadata("design:type", String)
+], AuthenticatedPrincipal.prototype, "passwordSalt", void 0);
+__decorate([
+    amorphic_1.property({ toClient: false, toServer: false }),
+    __metadata("design:type", String)
+], AuthenticatedPrincipal.prototype, "passwordChangeHash", void 0);
+__decorate([
+    amorphic_1.property({ toClient: false, toServer: false }),
+    __metadata("design:type", String)
+], AuthenticatedPrincipal.prototype, "passwordChangeSalt", void 0);
+__decorate([
+    amorphic_1.property({ toClient: false, toServer: false }),
+    __metadata("design:type", Date)
+], AuthenticatedPrincipal.prototype, "passwordChangeExpires", void 0);
+__decorate([
+    amorphic_1.property({ toClient: false, toServer: false }),
+    __metadata("design:type", String)
+], AuthenticatedPrincipal.prototype, "validateEmailCode", void 0);
 __decorate([
     amorphic_1.remote(),
     __metadata("design:type", Function),
@@ -483,11 +483,12 @@ var AuthenticatingController = (function (_super) {
                 admin.firstName = "Admin";
                 admin.lastName = "User";
                 admin.role = defaultAdminRole.call(this);
+                this.amorphicate(admin);
                 return admin.establishPassword(defaultPassword.call(this) || "admin", null, true, true);
             }
             else
                 return Q(false);
-        });
+        }.bind(this));
     };
     /**
      * Create a new principal if one does not exist. This method is used by the currently logged in user to create
@@ -517,6 +518,7 @@ var AuthenticatingController = (function (_super) {
                     throw { code: "email_registered", text: "This email is already registered" };
                 principal = new AuthenticatedPrincipal();
             }
+            this.amorphicate(principal);
             // this[principalProperty] = this[principalProperty] || new Principal();
             principal.lockedOut = false;
             if (!reset) {
@@ -565,6 +567,7 @@ var AuthenticatingController = (function (_super) {
                 throw { code: "email_registered", text: "This email already registered" };
             this.setPrincipal(this.getPrincipal() || new AuthenticatedPrincipal());
             principal = this.getPrincipal();
+            this.amorphicate(principal);
             principal.email = this.email;
             principal.firstName = this.firstName;
             principal.lastName = this.lastName;
@@ -608,11 +611,13 @@ var AuthenticatingController = (function (_super) {
                     text: "Incorrect email or password" };
             }
             principal = principals[0];
+            this.amorphicate(principal);
             return principal.authenticate(this.password);
         }.bind(this)).then(function () {
             return AuthenticatedPrincipal.getFromPersistWithId(principal._id);
         }.bind(this)).then(function (p) {
             principal = p;
+            this.amorphicate(principal);
             forceChange = forceChange || principal.mustChangePassword;
             if (forceChange && !this.newPassword)
                 throw { code: "changePassword", text: "Please change your password" };
@@ -635,11 +640,13 @@ var AuthenticatingController = (function (_super) {
                     text: "Incorrect email or password" };
             }
             principal = principals[0];
+            this.amorphicate(principal);
             return principal.authenticate(this.password);
         }.bind(this)).then(function () {
             return AuthenticatedPrincipal.getFromPersistWithId(principal._id);
         }.bind(this)).then(function (p) {
             principal = p;
+            this.amorphicate(principal);
             if (principal.mustChangePassword && !this.newPassword)
                 throw { code: "changePassword", text: "Please change your password" };
             return principal.mustChangePassword ? this.changePasswordForPrincipal(principal) : Q(true);
@@ -778,6 +785,7 @@ var AuthenticatingController = (function (_super) {
             if (principals.length < 1)
                 throw { code: "invalid_email", text: "Incorrect email" };
             var principal = principals[0];
+            this.amorphicate(principal);
             return principal.setPasswordChangeHash().then(function (token) {
                 this.sendEmail("password_reset", this.email, principal.firstName, [
                     { name: "link", content: url.protocol + "//" + url.host.replace(/:.*/, '') +
@@ -801,11 +809,13 @@ var AuthenticatingController = (function (_super) {
                 throw { code: "ivalid_password_change_token",
                     text: "Invalid password change link - make sure you copied correctly from the email" };
             principal = principals[0];
+            this.amorphicate(principal);
             return principal.consumePasswordChangeToken(this.passwordChangeHash, this.newPassword);
         }.bind(this)).then(function () {
             return AuthenticatedPrincipal.getFromPersistWithId(principal._id);
         }.bind(this)).then(function (p) {
             principal = p;
+            this.amorphicate(principal);
             return principal.establishPassword(this.newPassword);
         }.bind(this)).then(function () {
             this.setLoggedInState(principal);
@@ -828,6 +838,7 @@ var AuthenticatingController = (function (_super) {
                 throw { code: "invalid_email_verification_code",
                     text: "Invalid verification link - make sure you copied correctly from the email" };
             principal = principals[0];
+            this.amorphicate(principal);
             return principal.consumeEmailVerificationCode(this.verifyEmailCode);
         }.bind(this)).then(function () {
             return page ? this.setPage(page) : Q(true);
