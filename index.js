@@ -60,31 +60,16 @@ var crypto = require("crypto");
 var urlparser = require("url");
 var amorphic_1 = require("amorphic");
 require("es6-promise");
-{
-    return (function () {
-        function Foo() {
-        }
-        return Foo;
-    }());
-}
-{
-    return (function (_super) {
-        __extends(class_1, _super);
-        function class_1() {
-            var _this = _super !== null && _super.apply(this, arguments) || this;
-            _this._timestamp = new Date();
-            return _this;
-        }
-        Object.defineProperty(class_1.prototype, "timestamp", {
-            get: function () {
-                return this._timestamp;
-            },
-            enumerable: true,
-            configurable: true
-        });
-        return class_1;
-    }(Base));
-}
+/*
+ * SecurityContext can be retrieved using getSecurityContext on any object to
+ * find out who is logged in and what there roll is
+ 
+objectTemplate['globalInject'](function (obj) {
+    obj.getSecurityContext = function () {
+        return objectTemplate['controller'].securityContext || new SecurityContext();
+    }
+});
+*/
 function validateEmail() { return this.__objectTemplate__.config.userman.validateEmail || 0; }
 ;
 function validateEmailAndLogin() { return this.__objectTemplate__.config.userman.validateEmailAndLogin; }
@@ -129,7 +114,7 @@ var SecurityContext = (function (_super) {
     __extends(SecurityContext, _super);
     function SecurityContext(principal, role) {
         var _this = _super.call(this) || this;
-        if (_this.__empty__)
+        if (_this.amorphicLeaveEmpty)
             return _this;
         _this.principal = principal;
         _this.role = role;
@@ -143,7 +128,7 @@ var SecurityContext = (function (_super) {
         return this.isLoggedIn() && this.principal.role == this.defaultAdminRole;
     };
     return SecurityContext;
-}(amorphic_1.Supertype));
+}(amorphic_1.Remoteable(amorphic_1.Persistable(amorphic_1.Supertype))));
 __decorate([
     amorphic_1.property({ toServer: false, getType: function () { return AuthenticatedPrincipal; } }),
     __metadata("design:type", AuthenticatedPrincipal)
@@ -395,7 +380,7 @@ var AuthenticatedPrincipal = AuthenticatedPrincipal_1 = (function (_super) {
             return Q.delay(2000);
     };
     return AuthenticatedPrincipal;
-}(amorphic_1.Supertype));
+}(amorphic_1.Remoteable(amorphic_1.Persistable(amorphic_1.Supertype))));
 __decorate([
     amorphic_1.property({ toServer: false }),
     __metadata("design:type", String)
@@ -1009,7 +994,7 @@ var AuthenticatingController = (function (_super) {
         }
     };
     return AuthenticatingController;
-}(amorphic_1.Supertype));
+}(amorphic_1.Remoteable(amorphic_1.Persistable(amorphic_1.Supertype))));
 __decorate([
     amorphic_1.property({ length: 50, rule: ["name", "required"] }),
     __metadata("design:type", String)

@@ -2,6 +2,8 @@
 import * as Q from 'q';
 import { Supertype } from 'amorphic';
 import 'es6-promise';
+export declare type Constructable<BC> = new (...args: any[]) => BC;
+export declare function Timestamped<BC extends Constructable<{}>>(Base: BC): any;
 export declare class SecurityContext extends Supertype {
     principal: AuthenticatedPrincipal;
     role: string;

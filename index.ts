@@ -2,7 +2,7 @@ import * as Q from 'q';
 import * as _ from 'underscore';
 import * as crypto from 'crypto';
 import * as urlparser from 'url';
-import {Supertype, supertypeClass, property, remote} from 'amorphic';
+import {Supertype, supertypeClass, property, remote, Remoteable, Persistable} from 'amorphic';
 import 'es6-promise';
 
 /*
@@ -15,17 +15,6 @@ objectTemplate['globalInject'](function (obj) {
     }
 });
 */
-
-export type Constructable<BC> = new (...args: any[]) => BC;
-
-export function Timestamped<BC extends Constructable<{}>>(Base: BC) : any => {return class Foo} {
-    return class extends Base {
-        private _timestamp = new Date();
-        get timestamp() {
-            return this._timestamp;
-        }
-    };
-}
 
 function validateEmail () {return this.__objectTemplate__.config.userman.validateEmail || 0};
 function validateEmailAndLogin () {return this.__objectTemplate__.config.userman.validateEmailAndLogin;}
@@ -47,7 +36,6 @@ function log(message) {
     this.__objectTemplate__.logger.info(message);
 }
 
-
 function filterProperty () {return this.__objectTemplate__.config.filterProperty}
 function filterValue () {return this.__objectTemplate__.config.filterProperty}
 
@@ -66,7 +54,7 @@ function insertFilter(obj) {
 }
 
 @supertypeClass
-export class SecurityContext extends Supertype  {
+export class SecurityContext extends Remoteable(Persistable(Supertype)) {
 
     @property({toServer: false, getType: () => {return AuthenticatedPrincipal}})
     principal: AuthenticatedPrincipal;
@@ -79,7 +67,7 @@ export class SecurityContext extends Supertype  {
 
     constructor (principal, role) {
         super();
-        if (this.__empty__)
+        if (this.amorphicLeaveEmpty)
             return;
         this.principal = principal;
         this.role = role;
@@ -95,7 +83,7 @@ export class SecurityContext extends Supertype  {
 }
 
 @supertypeClass
-export class AuthenticatedPrincipal extends Supertype  {
+export class AuthenticatedPrincipal extends Remoteable(Persistable(Supertype))  {
 
    // These secure elements are NEVER transmitted
 
@@ -411,7 +399,7 @@ export class AuthenticatedPrincipal extends Supertype  {
 
 
 @supertypeClass
-export abstract class AuthenticatingController extends Supertype  {
+export abstract class AuthenticatingController extends Remoteable(Persistable(Supertype))  {
 
     @property({length: 50, rule: ["name", "required"]})
     firstName: string = '';
