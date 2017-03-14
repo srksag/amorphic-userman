@@ -3,7 +3,6 @@
     "description": "An amorphic module for basic identity management",
     "homepage": "https://github.com/selsamman/amorphic-userman",
     "version": "1.4.2",
-    "main": "./index.ts",
     "dependencies": {
         "amorphic": "https://github.com/selsamman/amorphic.git#0b16b56c61618871f0ebebd2dbaa11fbd62fb85c",
         "q": "1.x",
