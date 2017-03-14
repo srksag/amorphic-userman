@@ -60,16 +60,31 @@ var crypto = require("crypto");
 var urlparser = require("url");
 var amorphic_1 = require("amorphic");
 require("es6-promise");
-/*
- * SecurityContext can be retrieved using getSecurityContext on any object to
- * find out who is logged in and what there roll is
- 
-objectTemplate['globalInject'](function (obj) {
-    obj.getSecurityContext = function () {
-        return objectTemplate['controller'].securityContext || new SecurityContext();
-    }
-});
-*/
+{
+    return (function () {
+        function Foo() {
+        }
+        return Foo;
+    }());
+}
+{
+    return (function (_super) {
+        __extends(class_1, _super);
+        function class_1() {
+            var _this = _super !== null && _super.apply(this, arguments) || this;
+            _this._timestamp = new Date();
+            return _this;
+        }
+        Object.defineProperty(class_1.prototype, "timestamp", {
+            get: function () {
+                return this._timestamp;
+            },
+            enumerable: true,
+            configurable: true
+        });
+        return class_1;
+    }(Base));
+}
 function validateEmail() { return this.__objectTemplate__.config.userman.validateEmail || 0; }
 ;
 function validateEmailAndLogin() { return this.__objectTemplate__.config.userman.validateEmailAndLogin; }

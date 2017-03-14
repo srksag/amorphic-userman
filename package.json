@@ -6,7 +6,7 @@
     "types": "./index.d.ts",
     "main": "./index.js",
     "dependencies": {
-        "amorphic": "https://github.com/selsamman/amorphic.git#d80ac3090b7e7fbc2875b2da1e96b3bc8010e8df",
+        "amorphic": "https://github.com/selsamman/amorphic.git#0b16b56c61618871f0ebebd2dbaa11fbd62fb85c",
         "q": "1.x",
         "@types/q": "*",
         "@types/node": "^7.0.5",

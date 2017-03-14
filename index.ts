@@ -16,6 +16,17 @@ objectTemplate['globalInject'](function (obj) {
 });
 */
 
+export type Constructable<BC> = new (...args: any[]) => BC;
+
+export function Timestamped<BC extends Constructable<{}>>(Base: BC) : any => {return class Foo} {
+    return class extends Base {
+        private _timestamp = new Date();
+        get timestamp() {
+            return this._timestamp;
+        }
+    };
+}
+
 function validateEmail () {return this.__objectTemplate__.config.userman.validateEmail || 0};
 function validateEmailAndLogin () {return this.__objectTemplate__.config.userman.validateEmailAndLogin;}
 function passwordChangeExpiresHours () {return this.__objectTemplate__.config.userman.passwordChangeExpiresHours;}
