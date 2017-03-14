@@ -381,7 +381,7 @@ export class AuthenticatedPrincipal extends Remoteable(Persistable(Supertype))  
     badLogin () {
         if (maxLoginAttempts.call(this)) {
             this.unsuccesfulLogins.push(new Date());
-            this.unsuccesfulLogins = _.filter(this.unsuccesfulLogins, function (attempt) {
+            this.unsuccesfulLogins = _.filter(this.unsuccesfulLogins, function (attempt : any) {
                 return ((new Date(attempt)).getTime() > ((new Date()).getTime() - 1000 * 60 * maxLoginPeriodMinutes.call(this)));
             });
             if (this.unsuccesfulLogins.length > maxLoginAttempts.call(this)) {
