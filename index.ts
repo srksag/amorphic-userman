@@ -2,7 +2,7 @@ import * as Q from 'q';
 import * as _ from 'underscore';
 import * as crypto from 'crypto';
 import * as urlparser from 'url';
-import {Supertype, supertypeClass, property, remote, Remoteable, Persistable} from 'amorphic';
+import {Supertype, supertypeClass, property, remote, Remoteable, Persistable, Bindable} from 'amorphic';
 import 'es6-promise';
 
 /*
@@ -399,7 +399,7 @@ export class AuthenticatedPrincipal extends Remoteable(Persistable(Supertype))  
 
 
 @supertypeClass
-export abstract class AuthenticatingController extends Remoteable(Persistable(Supertype))  {
+export abstract class AuthenticatingController extends Bindable(Remoteable(Persistable(Supertype))) {
 
     @property({length: 50, rule: ["name", "required"]})
     firstName: string = '';
