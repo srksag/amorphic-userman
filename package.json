@@ -4,7 +4,7 @@
     "homepage": "https://github.com/selsamman/amorphic-userman",
     "version": "1.4.2",
     "dependencies": {
-        "amorphic": "https://github.com/selsamman/amorphic.git#25a3863fb7d97e4113640a7b031e7c0706d018a4",
+        "amorphic": "https://github.com/selsamman/amorphic.git#f1ab72407417548e7352c599b120988bf6fd7bb4",
         "q": "1.x",
         "@types/q": "*",
         "@types/node": "^7.0.5",
