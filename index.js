@@ -661,7 +661,7 @@ module.exports.userman_mixins = function (objectTemplate, requires, moduleConfig
                     return Q(true).then(function () {
                         return principal.authenticate(this.password, null, true);
                     }.bind(this)).then (function () {
-                        return Principal.countFromPersistWithQuery(queryFilter({email: newEmail}))
+                        return Principal.countFromPersistWithQuery(queryFilter({email: { $regex: new RegExp("^" + newEmail.toLowerCase().replace(/([^0-9a-zA-Z])/g, "\\$1") + '$'), $options: 'i' }}))
                     }.bind(this)).then(function (count) {
                         if (count > 0)
                             throw {code: "email_registered", text:"This email already registered"};
