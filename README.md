@@ -177,7 +177,7 @@ the setPage method to route the user to a page when done.
 Controller properties passwordChangeHash is expected to contains the token= parameter from the url
 and newPassword the new password to be set.
   
-  
+
 * __publicVerifyEmailFromCode(page)__ -
 Verifies that a principal has a valid email address by verifying a token that was parsed from the email sent
 by publicRegister.
@@ -186,16 +186,28 @@ the setPage method to route the user to a page after login.
 Controller properties verifyEmailCode is expected to contains the code= parameter from the url,
 email is expected to be the email= parameter.
 
-userman uses a method sendMail(templateName, emailAddress, firstName, insertions) to send emails.  The insertions
-parameter is an array of objects that contain a name/parameter property pair to be substitued in the mails.  Using
-the amorphic-mandril module these emails can be sent via mandrill.
-
 * __createNewAdmin()__ -
 Create a new principal if one does not exist. This method is used by the currently logged in user to create
 new users. The principal info comes from the an object which should have the following properties:
 firstName, lastName, email, newPassword, confirmPassword, role
+
+userman uses a method **sendEmail()** to send user-related emails.  It has four arguments:
+*  `templateName`: 
+    * `'register_verify'` - new user registration verification
+    * `'email_changed'` - email sent to old email address which is purely informational
+    * `'email_changed_verify'` - email sent to new email address asking to verify the new email
+    * `'password_reset'` - email to reset a user's password
+    * `'email_verify'` - resend change email validation code
+    * `'confirm_emailchange'` - verification email for changing a user's account email
+* `emailAddress`
+    * user's email address 
+* `recipientName`
+    * user's name
+* `insertions`
+    * Array of objects that contain a name/parameter property pair: `[{name: 'email', content: 'joe@gmail.com'}, {name: "firstName", content: 'Joe'}]`
+    * This format is meant to work with the [amorphic-mandrill](https://github.com/selsamman/amorphic-mandrill) module to easily send emails via mandrill.
       
 
 ## License
 
-amorhic-userman is licensed under the MIT license
+amorphic-userman is licensed under the MIT license
