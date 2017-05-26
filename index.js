@@ -571,7 +571,7 @@ module.exports.userman_mixins = function (objectTemplate, requires, moduleConfig
                     var principal;
 
                     return Principal.getFromPersistWithQuery(
-                        queryFilter({newEmail: { $regex: new RegExp("^" + this.email.toLowerCase().replace(/([^0-9a-zA-Z])/g, "\\$1") + '$', "i") }}),
+                        queryFilter({newEmail: { $regex: new RegExp("^" + this.email.toLowerCase().replace(/([^0-9a-zA-Z])/g, "\\$1") + '$'),$options: 'i'}}),
                         null, null, null, true
                     ).then( function (principals) {
                         if (principals.length == 0) {
