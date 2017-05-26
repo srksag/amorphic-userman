@@ -1,39 +1,41 @@
+## 1.4.3
+* Fix for pin verification.
 ## 1.4.2
-- Don't allow duplicate register calls with only case differences
+* Don't allow duplicate register calls with only case differences
 ## 1.4.1
-- Made compatible with templateMode: auto
+* Made compatible with templateMode: auto
 ## 1.4.0
 - Made compatible with templateMode: auto
 ## 1.0.1
-- Added sendmail call when password changed from token
+* Added sendmail call when password changed from token
 ## 1.0.0
-- Fixed typo that prevented password change messages from coming out
+* Fixed typo that prevented password change messages from coming out
 ## 0.1.30
-- Added segragation by channel (filterProperty/filterValue) per application
+* Added segragation by channel (filterProperty/filterValue) per application
 ## 0.1.28
-- lower case login
+* lower case login
 ## 0.1.27
-- Support for knex
+* Support for knex
 ## 0.1.25
-- Fixed information leak issue
+* Fixed information leak issue
 ## 0.1.24
-- Changes for admin users
+* Changes for admin users
 ## 0.1.23
-- Typeo in password composition 
+* Typeo in password composition 
 ## 0.1.22
-- Allow login to provide new password and change password
+* Allow login to provide new password and change password
 ## 0.1.21
-- Make sure email validation code has leading zeros rather than suppressing them
+* Make sure email validation code has leading zeros rather than suppressing them
 ## 0.1.20
-- Support for deferred email changes
+* Support for deferred email changes
 ## 0.1.19
-For admin users
-- Password lockout on bad attempts
-- Password expiration
-- Forbid use of the last n passwords
-- Forcing password changes on new accounts
-- reset of admin user passwords
-- Composition rules that are principal specific
+* For admin users
+    - Password lockout on bad attempts
+    - Password expiration
+    - Forbid use of the last n passwords
+    - Forcing password changes on new accounts
+    - reset of admin user passwords
+    - Composition rules that are principal specific
 ## 0.1.18
 * Fixed lost password
 ## 0.1.17
