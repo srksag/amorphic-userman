@@ -8,7 +8,7 @@ import 'es6-promise';
 /*
  * SecurityContext can be retrieved using getSecurityContext on any object to
  * find out who is logged in and what there roll is
- 
+
 objectTemplate['globalInject'](function (obj) {
     obj.getSecurityContext = function () {
         return objectTemplate['controller'].securityContext || new SecurityContext();
@@ -129,7 +129,7 @@ export class AuthenticatedPrincipal extends Remoteable(Persistable(Supertype))  
     }})
     role:  string = 'user';
 
-    @property({toServer: false})
+    @property({toServer: false, persist: false})
     securityContext:  SecurityContext;
 
     // These are never received.  You can mess with your passwork assuming you are logged in but never see it
@@ -445,10 +445,10 @@ export abstract class AuthenticatingController extends Bindable(Remoteable(Persi
 
     @property({toServer: false})
     securityContext:  SecurityContext;
-    
+
     abstract setPrincipal(principal: AuthenticatedPrincipal);
     abstract getPrincipal() : AuthenticatedPrincipal;
-        
+
     isLoggedIn () {
         return !!this.loggedIn;
     }
@@ -885,7 +885,7 @@ export abstract class AuthenticatingController extends Bindable(Remoteable(Persi
 
         log.call(this, "Resent email validation code to " + principal.email);
     }
-    
+
     /**
      * Change the password for a logged in user verifying old password
      * Also called from login on a force change password so technically you don't have to be logged in
@@ -920,7 +920,7 @@ export abstract class AuthenticatingController extends Bindable(Remoteable(Persi
 
         }.bind(this));
     }
-    
+
     /**
      * Request that an email be sent with a password change link
      */
