@@ -4,11 +4,11 @@
     "homepage": "https://github.com/selsamman/amorphic-userman",
     "version": "1.4.2",
     "dependencies": {
-        "amorphic": "https://github.com/selsamman/amorphic.git#66efb2427bc9925337ce6c5807f532d2906e2a9c",
-        "q": "1.x",
+        "@types/node": "^7.0.23",
         "@types/q": "*",
-        "@types/node": "^7.0.5",
-        "es6-promise": "*"
+        "amorphic": "git+https://github.com/selsamman/amorphic.git#74a88bb3b8db73c51ac93a692a265e6e6df6919e",
+        "es6-promise": "*",
+        "q": "1.x"
     },
     "devDependencies": {
         "typescript": "^2.2.0"
