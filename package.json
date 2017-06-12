@@ -6,7 +6,7 @@
     "dependencies": {
         "@types/node": "^7.0.23",
         "@types/q": "*",
-        "amorphic": "git+https://github.com/selsamman/amorphic.git#fc74d8065de0a14b814361502ff83e85337ccb32",
+        "amorphic": "git+https://github.com/selsamman/amorphic.git#c8e805fa5a81fc6f999d7126c3afca430f96ab0f",
         "es6-promise": "*",
         "q": "1.x"
     },
