@@ -905,7 +905,7 @@ export abstract class AuthenticatingController extends Bindable(Remoteable(Persi
     createNewAdmin (adminUser, url, pageConfirmation?, pageInstructions?, reset?) {
 
         // Check for security context of security admin
-        if(this.loggedInRole !== defaultRole.call(this)){
+        if(this.loggedInRole !== defaultAdminRole.call(this)){
             throw {code: 'cannotcreateadmin', text: "Only a security admin can create users"};
         }
         if (adminUser.newPassword != adminUser.confirmPassword)
