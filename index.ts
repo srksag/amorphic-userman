@@ -9,12 +9,12 @@ import 'es6-promise';
  * SecurityContext can be retrieved using getSecurityContext on any object to
  * find out who is logged in and what there roll is
 
-objectTemplate['globalInject'](function (obj) {
-    obj.getSecurityContext = function () {
-        return objectTemplate['controller'].securityContext || new SecurityContext();
-    }
-});
-*/
+ objectTemplate['globalInject'](function (obj) {
+ obj.getSecurityContext = function () {
+ return objectTemplate['controller'].securityContext || new SecurityContext();
+ }
+ });
+ */
 
 function validateEmail () {return this.__objectTemplate__.config.userman.validateEmail || 0};
 function validateEmailAndLogin () {return this.__objectTemplate__.config.userman.validateEmailAndLogin;}
@@ -57,7 +57,7 @@ function insertFilter(obj) {
 export class SecurityContext extends Remoteable(Persistable(Supertype)) {
 
     @property({toServer: false})
-    principal: IPrinciple;
+    principal: Principal;
 
     @property({toServer: false})
     role: string;
@@ -84,7 +84,7 @@ export class SecurityContext extends Remoteable(Persistable(Supertype)) {
 
 class _Persistent extends Persistable(Supertype) {}
 
-export interface IPrinciple extends _Persistent {
+export interface Principal extends _Persistent {
     role:  string;
 
     email: string;
@@ -109,7 +109,7 @@ export interface IPrinciple extends _Persistent {
 
     previousSalts: Array<string>;
 
-    previousHashes: Array<String>;
+    previousHashes: Array<string>;
 
 
     securityContext:  SecurityContext;
@@ -195,11 +195,11 @@ export interface IPrinciple extends _Persistent {
 }
 
 @supertypeClass
-export class AuthenticatedPrincipal extends Remoteable(Persistable(Supertype))  implements IPrinciple {
+export class AuthenticatedPrincipal extends Remoteable(Persistable(Supertype))  implements Principal {
     @property()
     role:  string;
 
-   // These secure elements are NEVER transmitted
+    // These secure elements are NEVER transmitted
 
     @property({toServer: false})
     email: string = '';
@@ -222,7 +222,7 @@ export class AuthenticatedPrincipal extends Remoteable(Persistable(Supertype))  
     @property({toServer: false})
     lockedOut: boolean = false;
 
-    @property({toServer: false, toClient: false, type: Date})
+    @property({toServer: false, toClient: false, getType: () => Date})
     unsuccesfulLogins: Array<Date> = [];
 
     @property({toServer: false})
@@ -231,11 +231,11 @@ export class AuthenticatedPrincipal extends Remoteable(Persistable(Supertype))  
     @property({toServer: false})
     mustChangePassword: boolean = false;
 
-    @property({toServer: false, toClient: false, type: String})
+    @property({toServer: false, toClient: false, getType: ()=> String})
     previousSalts: Array<string> = [];
 
-    @property({toServer: false, toClient: false, type: String})
-    previousHashes: Array<String> = [];
+    @property({toServer: false, toClient: false, getType: ()=> String})
+    previousHashes: Array<string> = [];
 
 
     @property({toServer: false, persist: false})
@@ -477,8 +477,8 @@ export class AuthenticatedPrincipal extends Remoteable(Persistable(Supertype))  
                 return this.badLogin().then(function () {
                     this.persistSave();
                     throw loggedIn ?
-                    {code: "invalid_password", text: "Incorrect password"} :
-                    {code: "invalid_email_or_password", text: "Incorrect email or password"};
+                        {code: "invalid_password", text: "Incorrect password"} :
+                        {code: "invalid_email_or_password", text: "Incorrect email or password"};
                 }.bind(this));
             } else {
             }
@@ -507,7 +507,7 @@ export class AuthenticatedPrincipal extends Remoteable(Persistable(Supertype))  
 }
 
 @supertypeClass
-export class AuthenticatedAdminPrincipal extends Remoteable(Persistable(Supertype)) implements IPrinciple  {
+export class AuthenticatedAdminPrincipal extends Remoteable(Persistable(Supertype)) implements Principal  {
 
     // These secure elements are NEVER transmitted
 
@@ -541,11 +541,11 @@ export class AuthenticatedAdminPrincipal extends Remoteable(Persistable(Supertyp
     @property({toServer: false})
     mustChangePassword: boolean = false;
 
-    @property({toServer: false, toClient: false, type: String})
+    @property({toServer: false, toClient: false, getType: () => String})
     previousSalts: Array<string> = [];
 
-    @property({toServer: false, toClient: false, type: String})
-    previousHashes: Array<String> = [];
+    @property({toServer: false, toClient: false, getType: () => String})
+    previousHashes: Array<string> = [];
 
     @property({toServer: false, values: {
         user:               'User',             // A normal user
@@ -869,9 +869,9 @@ export abstract class AuthenticatingController extends Bindable(Remoteable(Persi
     @property({toServer: false})
     securityContext:  SecurityContext;
 
-    abstract setPrincipal(principal: IPrinciple);
-    abstract getPrincipal() : IPrinciple;
-    abstract newPrincipal(): IPrinciple;
+    abstract setPrincipal(principal: Principal);
+    abstract getPrincipal() : Principal;
+    abstract newPrincipal(): Principal;
 
     isLoggedIn () {
         return !!this.loggedIn;
@@ -1074,7 +1074,7 @@ export abstract class AuthenticatingController extends Bindable(Remoteable(Persi
         var query = this.getPrincipal().amorphicClass.getFromPersistWithQuery(
             queryFilter.call(this,
                 {email: { $regex: new RegExp("^" + this.email.toLowerCase().replace(/([^0-9a-zA-Z])/g, "\\$1") + '$'), $options: 'i' }}),
-                null, null, null, true);
+            null, null, null, true);
 
         return query.then( (principals) => {
             if (principals.length == 0 || principals[0].suspended) {
