@@ -1,3 +1,5 @@
+## 2.0.0
+* Convert to TypeScript
 ## 1.4.3
 * Fix for pin verification.
 ## 1.4.2
