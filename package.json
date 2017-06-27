@@ -4,16 +4,25 @@
     "homepage": "https://github.com/selsamman/amorphic-userman",
     "version": "1.4.3",
     "dependencies": {
+        "@types/node": "^7.0.23",
+        "@types/q": "*",
+        "amorphic": "git+https://github.com/selsamman/amorphic.git#8d4229c1b72c391595a89e593a76b19b1b53c580",
+        "es6-promise": "*",
         "q": "1.x"
     },
-    "directories": {
+    "devDependencies": {
+        "typescript": "^2.2.0"
     },
+    "directories": {},
     "engines": {
         "node": ">=0.8.0"
     },
+    "scripts": {
+        "compile:ts": "./node_modules/typescript/bin/tsc"
+    },
     "repository": {
         "type": "git",
-            "url": "git://github.com/selsamman/amorphic-userman.git"
+        "url": "git://github.com/selsamman/amorphic-userman.git"
     },
     "bugs": {
         "url": "http://github.com/selsamman/amorphic-userman/issues"
