@@ -222,7 +222,7 @@ export class AuthenticatedPrincipal extends Remoteable(Persistable(Supertype))  
     @property({toServer: false})
     lockedOut: boolean = false;
 
-    @property({toServer: false, toClient: false, getType: () => Date})
+    @property({toServer: false, toClient: false, type: Date})
     unsuccesfulLogins: Array<Date> = [];
 
     @property({toServer: false})
@@ -231,10 +231,10 @@ export class AuthenticatedPrincipal extends Remoteable(Persistable(Supertype))  
     @property({toServer: false})
     mustChangePassword: boolean = false;
 
-    @property({toServer: false, toClient: false, getType: ()=> String})
+    @property({toServer: false, toClient: false, type: String})
     previousSalts: Array<string> = [];
 
-    @property({toServer: false, toClient: false, getType: ()=> String})
+    @property({toServer: false, toClient: false, type: String})
     previousHashes: Array<string> = [];
 
 
@@ -492,7 +492,7 @@ export class AuthenticatedPrincipal extends Remoteable(Persistable(Supertype))  
             this.unsuccesfulLogins.push(new Date());
             this.unsuccesfulLogins = _.filter(this.unsuccesfulLogins, function (attempt : any) {
                 return ((new Date(attempt)).getTime() > ((new Date()).getTime() - 1000 * 60 * maxLoginPeriodMinutes.call(this)));
-            });
+            }.bind(this));
             if (this.unsuccesfulLogins.length > maxLoginAttempts.call(this)) {
                 if (this.role != defaultAdminRole.call(this)) {
                     this.lockedOut = true;
@@ -541,10 +541,10 @@ export class AuthenticatedAdminPrincipal extends Remoteable(Persistable(Supertyp
     @property({toServer: false})
     mustChangePassword: boolean = false;
 
-    @property({toServer: false, toClient: false, getType: () => String})
+    @property({toServer: false, toClient: false, type: String})
     previousSalts: Array<string> = [];
 
-    @property({toServer: false, toClient: false, getType: () => String})
+    @property({toServer: false, toClient: false, type: String})
     previousHashes: Array<string> = [];
 
     @property({toServer: false, values: {
@@ -807,7 +807,7 @@ export class AuthenticatedAdminPrincipal extends Remoteable(Persistable(Supertyp
             this.unsuccesfulLogins.push(new Date());
             this.unsuccesfulLogins = _.filter(this.unsuccesfulLogins, function (attempt : any) {
                 return ((new Date(attempt)).getTime() > ((new Date()).getTime() - 1000 * 60 * maxLoginPeriodMinutes.call(this)));
-            });
+            }.bind(this));
             if (this.unsuccesfulLogins.length > maxLoginAttempts.call(this)) {
                 if (this.role != defaultAdminRole.call(this)) {
                     this.lockedOut = true;
