@@ -492,7 +492,7 @@ export class AuthenticatedPrincipal extends Remoteable(Persistable(Supertype))  
             this.unsuccesfulLogins.push(new Date());
             this.unsuccesfulLogins = _.filter(this.unsuccesfulLogins, function (attempt : any) {
                 return ((new Date(attempt)).getTime() > ((new Date()).getTime() - 1000 * 60 * maxLoginPeriodMinutes.call(this)));
-            });
+            }.bind(this));
             if (this.unsuccesfulLogins.length > maxLoginAttempts.call(this)) {
                 if (this.role != defaultAdminRole.call(this)) {
                     this.lockedOut = true;
